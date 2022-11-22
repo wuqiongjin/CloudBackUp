@@ -1,0 +1,163 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <fstream>
+#include <experimental/filesystem>
+#include <sys/stat.h>
+#include "bundle.h"
+namespace fs = std::experimental::filesystem;
+
+namespace CloudBackUp{
+  //文件实用工具类
+  class FileUtil{
+    public:
+      FileUtil(const std::string& name) 
+        :_filename(name) 
+      {}
+
+      int64_t FileSize(){
+        if(stat(_filename.c_str(), &_st) < 0){
+          std::cerr << "Get FileSize Failed!" << std::endl;
+          return -1;
+        }
+        return _st.st_size;
+      }
+      
+      time_t LastModifyTime(){
+        if(stat(_filename.c_str(), &_st) < 0){
+          std::cerr << "Get LastModifyTime Failed!" << std::endl;
+          return -1;
+        }
+        return _st.st_mtime;
+      }
+
+      time_t LastAccessTime(){
+        if(stat(_filename.c_str(), &_st) < 0){
+          std::cerr << "Get LastAccessTime Failed!" << std::endl;
+          return -1;
+        }
+        return _st.st_atime;
+      }
+
+      //获取文件名称(去除路径前缀)
+      std::string FileName(){
+        // ../abc/test.txt  获取到最后的test.txt
+        auto pos = _filename.rfind('/');
+        if(pos == std::string::npos){
+          return _filename;
+        }
+        return _filename.substr(pos + 1);
+      }
+
+      //读取当前类保存的filename的内容, 但是指定了从某个位置处开始、确定长度 的内容
+      //第一个参数content是一个输出型参数, 外界用于获取文件内容
+      bool GetPosLenContent(std::string& content, size_t pos, size_t len){
+        size_t fz = this->FileSize();
+        if(pos + len > fz){
+          std::cerr << "Read Size exceed FileSize!" << std::endl;
+          return false;
+        }
+
+        content.resize(len - pos, '\0');  //!!! 这里必须要先resize, 不然后面read的时候没法修改string
+        
+        std::ifstream ifs(_filename, std::ios::binary);  //ifs默认读文件 (fstream需要指定读写)
+        if(ifs.is_open() == false){
+          std::cerr << "open ReadFile failed!" << std::endl;
+          return false;
+        }
+        ifs.seekg(pos, std::ios::beg);  //从beg处往后偏移pos长度
+        ifs.read(&content[0], len);
+        ifs.close();
+        return true;
+      }
+
+      //读取当前类保存的filename的全部内容
+      bool GetContent(std::string& content){
+        return this->GetPosLenContent(content, 0, this->FileSize());
+      }
+
+      //写入到当前类所保存的filename文件中, 写入的内容是content
+      bool SetContent(std::string& content){
+        std::ofstream ofs(_filename, std::ios::binary);
+        if(ofs.is_open() == false){
+          std::cerr << "open WriteFile failed!" << std::endl;
+          return false;
+        }
+        ofs.write(&content[0], content.size());
+        ofs.close();
+        return true;
+      }
+
+      //压缩文件: 压缩当前类保存的文件 (参数packname表示要生成的压缩包的名称)
+      //1. 读取文件内容 --- GetContent()
+      //2. 压缩文件
+      //3. 将压缩的文件写入磁盘中 --- 先创建一个新的FileUtil类, 然后进行SetContent()
+      bool Compress(const std::string& packname){
+        std::string content;
+        if(this->GetContent(content) == false){
+          std::cerr << "Compress: GetContent failed!" << std::endl;
+          return false;
+        }
+
+        std::string packed = bundle::pack(bundle::ZPAQ, content);
+        
+        FileUtil fu(packname);
+        if(fu.SetContent(packed) == false){
+          std::cerr << "Compress: SetContent failed!" << std::endl;
+          return false;
+        }
+        return true;
+      }
+
+      //解压文件: 解压当前类保存的压缩包文件 (filename为解压后要生成的文件名称)
+      bool UnCompress(const std::string& filename){
+        std::string content;
+        if(this->GetContent(content) == false){
+          std::cerr << "UnCompress: GetContent failed!" << std::endl;
+          return false;
+        }
+
+        std::string unpacked = bundle::unpack(content);
+
+        FileUtil fu(filename);
+        if(fu.SetContent(unpacked) == false){
+          std::cerr << "UnCompress: SetContent failed!" << std::endl;
+          return false;
+        }
+        return true;
+      }
+
+      //!下面三个函数是针对"目录"文件相关的操作函数!
+      //判断filename这个目录是否存在
+      bool Exists(){
+        return fs::exists(_filename);
+      }
+
+      //当filename目录不存在时, 创建该目录
+      bool CreateDirectory(){
+        //if(this->Exists()){
+        //  return true;
+        //}
+        return fs::create_directory(_filename); //它会自动判断, 如果目录已经存在, 不会做任何处理; 目录不存在则创建目录
+      }
+
+      //遍历filename目录下的所有文件, 将文件存储到array数组中(输出型参数)
+      //注意: 存入到array的文件名称是'相对路径', 我们不是只存文件的名字, 我们还需要存它的前缀路径(相对的)
+      bool ScanDirectory(std::vector<std::string>& array){
+        //扩展: 这里使用recursive_directory_iterator可以递归遍历到filename目录下的所有文件(包含其子目录的文件), 那么是否可以把目录页上传到服务器呢?
+        for(auto& p : fs::directory_iterator(_filename)){
+          //判断是否是目录文件, 将非目录文件添加到array数组中
+          if(fs::is_directory(p) == false){
+            array.emplace_back(fs::path(p).relative_path().string());
+          }
+        }
+        return true;
+      }
+
+    private:
+      std::string _filename;
+      struct stat _st;
+  };
+
+
+}
