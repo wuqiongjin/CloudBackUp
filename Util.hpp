@@ -1,13 +1,15 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <sstream>
 #include <fstream>
 #include <experimental/filesystem>
+#include <jsoncpp/json/json.h>
 #include <sys/stat.h>
 #include "bundle.h"
 namespace fs = std::experimental::filesystem;
 
-namespace CloudBackUp{
+namespace CloudBackup{
   //文件实用工具类
   class FileUtil{
     public:
@@ -51,14 +53,14 @@ namespace CloudBackUp{
 
       //读取当前类保存的filename的内容, 但是指定了从某个位置处开始、确定长度 的内容
       //第一个参数content是一个输出型参数, 外界用于获取文件内容
-      bool GetPosLenContent(std::string& content, size_t pos, size_t len){
+      bool GetPosLenContent(std::string& output_content, size_t pos, size_t len){
         size_t fz = this->FileSize();
         if(pos + len > fz){
           std::cerr << "Read Size exceed FileSize!" << std::endl;
           return false;
         }
 
-        content.resize(len - pos, '\0');  //!!! 这里必须要先resize, 不然后面read的时候没法修改string
+        output_content.resize(len - pos, '\0');  //!!! 这里必须要先resize, 不然后面read的时候没法修改string
         
         std::ifstream ifs(_filename, std::ios::binary);  //ifs默认读文件 (fstream需要指定读写)
         if(ifs.is_open() == false){
@@ -66,14 +68,14 @@ namespace CloudBackUp{
           return false;
         }
         ifs.seekg(pos, std::ios::beg);  //从beg处往后偏移pos长度
-        ifs.read(&content[0], len);
+        ifs.read(&output_content[0], len);
         ifs.close();
         return true;
       }
 
       //读取当前类保存的filename的全部内容
-      bool GetContent(std::string& content){
-        return this->GetPosLenContent(content, 0, this->FileSize());
+      bool GetContent(std::string& output_content){
+        return this->GetPosLenContent(output_content, 0, this->FileSize());
       }
 
       //写入到当前类所保存的filename文件中, 写入的内容是content
@@ -143,12 +145,12 @@ namespace CloudBackUp{
 
       //遍历filename目录下的所有文件, 将文件存储到array数组中(输出型参数)
       //注意: 存入到array的文件名称是'相对路径', 我们不是只存文件的名字, 我们还需要存它的前缀路径(相对的)
-      bool ScanDirectory(std::vector<std::string>& array){
-        //扩展: 这里使用recursive_directory_iterator可以递归遍历到filename目录下的所有文件(包含其子目录的文件), 那么是否可以把目录页上传到服务器呢?
+      bool ScanDirectory(std::vector<std::string>& output_array){
+        //扩展: 这里使用recursive_directory_iterator可以递归遍历到filename目录下的所有文件(包含其子目录的文件), 那么是否可以把目录也上传到服务器呢?
         for(auto& p : fs::directory_iterator(_filename)){
           //判断是否是目录文件, 将非目录文件添加到array数组中
           if(fs::is_directory(p) == false){
-            array.emplace_back(fs::path(p).relative_path().string());
+            output_array.emplace_back(fs::path(p).relative_path().string());
           }
         }
         return true;
@@ -160,4 +162,32 @@ namespace CloudBackUp{
   };
 
 
+  class JsonUtil{
+    //序列化: 将Json对象转化为Json格式字符串 (第二个参数为输出型参数)
+    static bool Serialize(Json::Value& obj, std::string& output_JsonString){
+      Json::StreamWriterBuilder swbuilder;
+      std::unique_ptr<Json::StreamWriter> sw(swbuilder.newStreamWriter());
+      std::ostringstream oss;
+      //将转化的Json字符串写入了ostream流中
+      if(sw->write(obj, &oss) != 0){
+        std::cerr << "Json Serialize write failed!" << std::endl;
+        return false;
+      } 
+      output_JsonString = oss.str();
+      return true;
+    }
+
+    //反序列化: 将Json格式字符串转化为Json对象 (第二个参数为输出型参数)
+    static bool Deserialize(std::string& JsonString, Json::Value& output_obj){
+      Json::CharReaderBuilder crbuilder;
+      std::unique_ptr<Json::CharReader> cr(crbuilder.newCharReader());
+      std::string err;
+      bool ret = cr->parse(JsonString.c_str(), JsonString.c_str() + JsonString.size(), &output_obj, &err);
+      if(ret == false){
+        std::cerr << "Json Deserialize parse failed!" << std::endl;
+        return false;
+      }
+      return true;
+    }
+  };
 }
