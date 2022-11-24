@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <string>
 #include <vector>
@@ -163,6 +164,7 @@ namespace CloudBackup{
 
 
   class JsonUtil{
+    public:
     //序列化: 将Json对象转化为Json格式字符串 (第二个参数为输出型参数)
     static bool Serialize(Json::Value& obj, std::string& output_JsonString){
       Json::StreamWriterBuilder swbuilder;
