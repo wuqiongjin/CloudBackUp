@@ -23,8 +23,8 @@
 # Compiled Static libraries
 *.lai
 *.la
-*.a
-*.lib
+#*.a
+#*.lib
 
 # Executables
 *.exe
@@ -32,4 +32,4 @@
 *.appe/std::cout << rsp.body;
 
 bundle-master
-cpp-httplib-master/
+cpp-httplib-master
