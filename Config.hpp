@@ -6,7 +6,7 @@ constexpr auto CONFIG_FILE = "./Cloud.conf";
 namespace CloudBackup{
   class Config{
     public:
-      Config* GetInstance(){
+      static Config* GetInstance(){
         if(nullptr == _inst){
           _mtx.lock();
           if(nullptr == _inst){
@@ -61,10 +61,10 @@ namespace CloudBackup{
       std::string _pack_suffix; //压缩包后缀名
       std::string _pack_dir;    //压缩包的存放路径
       std::string _backup_dir;  //备份文件的存放路径
-      std::string _backup_info_list;  //备份文件信息列表(这里把备份文件的信息存放到了cloud.dat文件里了)
+      std::string _backup_info_list;  //备份文件数据信息列表(这里把备份文件的信息存放到了cloud.dat文件里了)
       std::string _download_prefix;   //下载备份文件时需要为下载请求URL添加的前缀
   };
   
   Config* Config::_inst = nullptr;
   std::mutex Config::_mtx;
-};
+}

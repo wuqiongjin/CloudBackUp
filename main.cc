@@ -1,4 +1,6 @@
 #include "Util.hpp"
+#include "Config.hpp"
+#include "DataManager.hpp"
 
 void test_Util(std::string& filename)
 {
@@ -33,6 +35,38 @@ void test_Util(std::string& filename)
   //}
 }
 
+void test_DataManager(const std::string& filename)
+{
+  //BackupInfo - Test
+  //CloudBackup::BackupInfo bi;
+  //bi.NewBackupInfo(filename);
+  //std::cout << bi._pack_flag << std::endl;
+  //std::cout << bi._fsize << std::endl;
+  //std::cout << bi._mtime << std::endl;
+  //std::cout << bi._atime << std::endl;
+  //std::cout << bi._real_path << std::endl;
+  //std::cout << bi._pack_path << std::endl;
+  //std::cout << bi._url << std::endl;
+
+  //DataManager - Test
+  CloudBackup::DataManager dm;
+  //CloudBackup::BackupInfo bi;
+  //bi.NewBackupInfo(filename);
+  //dm.Insert(bi);
+  std::vector<CloudBackup::BackupInfo> array; 
+  dm.GetAll(array);
+  for(size_t i = 0; i < array.size(); ++i)
+  {
+    std::cout << array[i]._pack_flag << std::endl;
+    std::cout << array[i]._fsize << std::endl;
+    std::cout << array[i]._mtime << std::endl;
+    std::cout << array[i]._atime << std::endl;
+    std::cout << array[i]._real_path << std::endl;
+    std::cout << array[i]._pack_path << std::endl;
+    std::cout << array[i]._url << std::endl;
+  }
+}
+
 int main(int argc, char* argv[])
 {
   if(argc != 2){
@@ -41,6 +75,7 @@ int main(int argc, char* argv[])
   }
   //std::string filename = "README.md";
   std::string filename = argv[1];
-  test_Util(filename);
+  //test_Util(filename);
+  test_DataManager(filename);
   return 0;
 }
