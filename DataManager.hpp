@@ -145,13 +145,18 @@ namespace CloudBackup{
       }
 
       //初始化加载函数(在启动数据管理模块时会先将持久化的数据文件读取到内存中的哈希表里)
-      //1. 读取持久化数据文件到string里
+      //1. (在这之前, 要判断cloud.dat文件是否存在, 如果不存在, 直接return即可, 因为没有任何数据信息需要加载)读取持久化数据文件到string里
       //2. 将string进行Json反序列化
       //3. 将数据信息插入到哈希表中
       bool InitLoad(){
         std::string jstr;
         //1.
         FileUtil fu(_persistence_file);
+        //持久化存储数据信息文件不存在, 不需要进行初始化加载, 因此直接return
+        if(fu.Exists() == false){
+          return true;
+        }
+
         fu.GetContent(jstr);
         //2.
         Json::Value obj;
