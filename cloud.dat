@@ -4,7 +4,7 @@
 		"fsize" : 919,
 		"mtime" : 1669009551,
 		"pack_flag" : false,
-		"pack_path" : "./packDir/README.md.zp",
+		"pack_dir" : "./packDir/README.md.zp",
 		"real_path" : "README.md",
 		"url" : "/download/README.md"
 	}

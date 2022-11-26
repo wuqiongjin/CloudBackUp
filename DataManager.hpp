@@ -21,12 +21,12 @@ namespace CloudBackup{
         _atime = fu.LastAccessTime();
         _real_path = realpath;
 
-        //pack_path: 备份文件路径:./backdir/a.txt   ->    ./packdir/a.txt.zp
+        //pack_dir: 备份文件路径:./backdir/a.txt   ->    ./packdir/a.txt.zp
         std::string filename = fu.FileName();
         CloudBackup::Config* cf = CloudBackup::Config::GetInstance();
         std::string packdir = cf->GetPackDir();
         std::string packsuffix = cf->GetPackSuffix();
-        _pack_path = packdir + filename + packsuffix;
+        _pack_dir = packdir + filename + packsuffix;
 
         //URL: 备份文件路径:./backdir/a.txt   ->    /download/a.txt
         std::string download_prefix = cf->GetDownloadPrefix();
@@ -39,7 +39,7 @@ namespace CloudBackup{
       time_t _mtime;    //文件最后一次修改时间
       time_t _atime;    //文件最后一次访问时间
       std::string _real_path;  //文件实际存放路径
-      std::string _pack_path;  //压缩包存放路径
+      std::string _pack_dir;  //压缩包存放路径
       std::string _url;        //下载文件时的URL请求资源路径
   };
 
@@ -131,7 +131,7 @@ namespace CloudBackup{
           tmp["mtime"] = static_cast<int>(data[i]._mtime);
           tmp["atime"] = static_cast<int>(data[i]._atime);
           tmp["real_path"] = data[i]._real_path;
-          tmp["pack_path"] = data[i]._pack_path;
+          tmp["pack_dir"] = data[i]._pack_dir;
           tmp["url"] = data[i]._url;
           obj.append(tmp);
         }
@@ -165,7 +165,7 @@ namespace CloudBackup{
           bi._mtime = obj[i]["mtime"].asInt();
           bi._atime = obj[i]["atime"].asInt();
           bi._real_path = obj[i]["real_path"].asString();
-          bi._pack_path = obj[i]["pack_path"].asString();
+          bi._pack_dir = obj[i]["pack_dir"].asString();
           bi._url = obj[i]["url"].asString();
           Insert(bi);
         }

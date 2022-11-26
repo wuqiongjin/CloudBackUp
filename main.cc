@@ -45,7 +45,7 @@ void test_DataManager(const std::string& filename)
   //std::cout << bi._mtime << std::endl;
   //std::cout << bi._atime << std::endl;
   //std::cout << bi._real_path << std::endl;
-  //std::cout << bi._pack_path << std::endl;
+  //std::cout << bi._pack_dir << std::endl;
   //std::cout << bi._url << std::endl;
 
   //DataManager - Test
@@ -62,7 +62,7 @@ void test_DataManager(const std::string& filename)
     std::cout << array[i]._mtime << std::endl;
     std::cout << array[i]._atime << std::endl;
     std::cout << array[i]._real_path << std::endl;
-    std::cout << array[i]._pack_path << std::endl;
+    std::cout << array[i]._pack_dir << std::endl;
     std::cout << array[i]._url << std::endl;
   }
 }
