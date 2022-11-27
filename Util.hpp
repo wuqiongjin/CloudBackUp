@@ -18,6 +18,10 @@ namespace CloudBackup{
         :_filename(name) 
       {}
 
+      bool RemoveFile(){
+        return fs::remove(_filename);
+      }
+
       int64_t FileSize(){
         if(stat(_filename.c_str(), &_st) < 0){
           std::cerr << "Get FileSize Failed!" << std::endl;

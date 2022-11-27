@@ -1,6 +1,9 @@
 #include "Util.hpp"
 #include "Config.hpp"
 #include "DataManager.hpp"
+#include "HotManager.hpp"
+
+CloudBackup::DataManager* _datam;
 
 void test_Util(std::string& filename)
 {
@@ -67,15 +70,24 @@ void test_DataManager(const std::string& filename)
   }
 }
 
+void test_HotManager()
+{
+  _datam = new CloudBackup::DataManager();
+  CloudBackup::HotManager ht;
+  ht.RunModule();
+}
+
 int main(int argc, char* argv[])
 {
-  if(argc != 2){
-    std::cerr << "Plz input 2 arguments!" << std::endl;
-    return -1;
-  }
+  //if(argc != 2){
+  //  std::cerr << "Plz input 2 arguments!" << std::endl;
+  //  return -1;
+  //}
   //std::string filename = "README.md";
-  std::string filename = argv[1];
+  //std::string filename = argv[1];
+  
   //test_Util(filename);
-  test_DataManager(filename);
+  //test_DataManager(filename);
+  test_HotManager();
   return 0;
 }
