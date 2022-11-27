@@ -38,8 +38,8 @@ namespace CloudBackup{
       size_t _fsize;    //文件大小
       time_t _mtime;    //文件最后一次修改时间
       time_t _atime;    //文件最后一次访问时间
-      std::string _real_path;  //文件实际存放路径
-      std::string _pack_dir;  //压缩包存放路径
+      std::string _real_path;  //文件实际存放路径 (./backupDir/filename.xxx)
+      std::string _pack_dir;  //压缩包存放路径 (./packDir/filename.xxx.zp)
       std::string _url;        //下载文件时的URL请求资源路径
   };
 

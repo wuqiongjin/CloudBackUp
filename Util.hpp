@@ -4,6 +4,7 @@
 #include <vector>
 #include <sstream>
 #include <fstream>
+#include <ctime>
 #include <experimental/filesystem>
 #include <jsoncpp/json/json.h>
 #include <sys/stat.h>
@@ -46,7 +47,13 @@ namespace CloudBackup{
         return _st.st_atime;
       }
 
+      std::string Time2String(time_t t){
+        return ctime(&t);  //该函数返回一个char*
+      }
+
       //获取文件名称(去除路径前缀)
+      //该函数的作用是: 将成员变量'_filename'裁剪为文件名(去除前面的路径), 它不涉及真的去访问该路径下的文件!!!(因此即便文件不存在, 如: 文件已经被压缩了。该函数也能裁剪出文件名)
+      //因此, 我们可以把它当做一个工具函数
       std::string FileName(){
         // ../abc/test.txt  获取到最后的test.txt
         auto pos = _filename.rfind('/');

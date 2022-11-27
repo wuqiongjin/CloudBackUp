@@ -46,6 +46,15 @@ namespace CloudBackup{
         _backup_dir = root["backup_dir"].asString();
         _backup_info_list = root["backup_info_list"].asString();
         _download_prefix = root["download_prefix"].asString();
+
+        //优化: 在这里直接对backDir和packDir进行创建(如果不存在的话)
+        //为什么我选择在这里直接创建了呢?
+        //  在读取配置文件的时候，直接创建好需要的目录。因为我们在Service里面调用时可能会由于没创建HotManager对象从而致使没创建目录, 然后导致出问题。所以我们不如直接在读取配置文件的时候直接创建目录。(这里是源头, 在源头处理能够解决问题的根本)
+        FileUtil fu_backDir(_backup_dir);
+        FileUtil fu_packDir(_pack_dir);
+        fu_backDir.CreateDirectory();
+        fu_packDir.CreateDirectory();
+
         return true;
       }
     private:

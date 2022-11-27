@@ -1,7 +1,9 @@
+#include <thread>
 #include "Util.hpp"
 #include "Config.hpp"
 #include "DataManager.hpp"
 #include "HotManager.hpp"
+#include "Service.hpp"
 
 CloudBackup::DataManager* _datam;
 
@@ -72,13 +74,19 @@ void test_DataManager(const std::string& filename)
 
 void test_HotManager()
 {
-  _datam = new CloudBackup::DataManager();
   CloudBackup::HotManager ht;
   ht.RunModule();
 }
 
+void test_Service()
+{
+  CloudBackup::Service svr;
+  svr.RunModule();
+}
+
 int main(int argc, char* argv[])
 {
+  _datam = new CloudBackup::DataManager();
   //if(argc != 2){
   //  std::cerr << "Plz input 2 arguments!" << std::endl;
   //  return -1;
@@ -88,6 +96,14 @@ int main(int argc, char* argv[])
   
   //test_Util(filename);
   //test_DataManager(filename);
-  test_HotManager();
+  //test_HotManager();
+  //test_Service();
+  
+  std::thread hotm_thread(test_HotManager);
+  std::thread service_thread(test_Service);
+
+  hotm_thread.join();
+  service_thread.join();
+
   return 0;
 }
