@@ -91,7 +91,7 @@ namespace CloudBackup{
       }
 
       //写入到当前类所保存的filename文件中, 写入的内容是content
-      bool SetContent(std::string& content){
+      bool SetContent(const std::string& content){
         std::ofstream ofs(_filename, std::ios::binary);
         if(ofs.is_open() == false){
           std::cerr << "open WriteFile failed!" << std::endl;
