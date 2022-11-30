@@ -33,3 +33,6 @@
 
 bundle-master
 cpp-httplib-master
+
+./server/backupDir
+./server/packDir
