@@ -1,6 +1,7 @@
 #pragma once
 #include "DataManager.hpp"
 #include "httplib.h"
+#include "ThreadPool.hpp"
 
 extern CloudBackup::DataManager* _datam;
 
