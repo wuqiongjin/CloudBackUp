@@ -40,14 +40,14 @@ namespace CloudBackup{
           //1.
           std::vector<std::string> files;
           FileUtil fu(_back_dir);
-          fu.ScanDirectory(files);
+          fu.ScanDirectory(files);  //递归backupDir获取文件信息
 
           for(auto file : files){
 
             BackupInfo bi;
             bool ret = _datam->GetOneByRealPath(file, bi);  //这里将第3部分需要做的事情提前取出来了(因为我们需要获取到文件中的压缩标志位)
-            //2. 判断文件是否为非热点文件 + 文件是否没有被压缩
-            if(HotJudge(file) == false && bi._pack_flag == false){
+            //2. 判断 是否为普通文件 + 是否为非热点文件 + 文件是否没有被压缩
+            if(fs::is_directory(file) == false && HotJudge(file) == false && bi._pack_flag == false){
               //3. 通过数据信息管理模块获取信息
               //如果备份信息模块中不存在该文件(而实际目录中存在该文件), 更新备份信息文件
               if(ret == false){

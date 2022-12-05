@@ -157,15 +157,49 @@ namespace CloudBackup{
 
       //遍历filename目录下的所有文件, 将文件存储到array数组中(输出型参数)
       //注意: 存入到array的文件名称是'相对路径', 我们不是只存文件的名字, 我们还需要存它的前缀路径(相对的)
+      //获取当前目录及其子目录的所有文件信息
+      //被使用的地方: HotManager.hpp 压缩模块
       bool ScanDirectory(std::vector<std::string>& output_array){
         //扩展: 这里使用recursive_directory_iterator可以递归遍历到filename目录下的所有文件(包含其子目录的文件), 那么是否可以把目录也上传到服务器呢?
-        for(auto& p : fs::directory_iterator(_filename)){
+        for(auto& p : fs::recursive_directory_iterator(_filename)){
           //判断是否是目录文件, 将非目录文件添加到array数组中
           if(fs::is_directory(p) == false){
             output_array.emplace_back(fs::path(p).relative_path().string());
           }
         }
         return true;
+      }
+
+      ////只获取当前层(不会递归到子目录)
+      ////被使用的地方: Service.hpp Access目录的地方
+      //bool ScanCurrentDirectory(std::vector<std::string>& output_array){
+      //  for(auto& p : fs::directory_iterator(_filename)){
+      //    output_array.emplace_back(fs::path(p).relative_path().string());
+      //  }
+      //  return true;
+      //}
+
+public:
+      static std::vector<std::string> Split(const std::string& s, const std::string& sep){
+        std::vector<std::string> res;
+        size_t pos = 0;
+        size_t prev = 0;
+        while((pos = s.find(sep, prev)) != std::string::npos)
+        {
+          if(prev == pos){
+            prev = pos + sep.size();
+            continue;
+          }
+          res.emplace_back(s.substr(prev, pos - prev));
+          prev = pos + sep.size();
+        }
+
+        //有一说一, 我们可以控制客户端, 让客户端的.stru文件最后一行多一个'\n', 然后就不需要这个判断了
+        if(prev < s.size()){
+          res.emplace_back(s.substr(prev));
+        }
+
+        return res;
       }
 
     private:
