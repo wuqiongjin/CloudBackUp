@@ -15,6 +15,13 @@ namespace CloudBackup{
           return false;
         }
 
+        if(fs::is_directory(realpath)){
+          _file_type = false;
+        }
+        else{
+          _file_type = true;
+        }
+
         _pack_flag = false; //新创建的备份文件默认是热点文件, 因此设置压缩标志位为false(没有被压缩)
         _fsize = fu.FileSize();
         _mtime = fu.LastModifyTime();
@@ -28,13 +35,22 @@ namespace CloudBackup{
         std::string packsuffix = cf->GetPackSuffix();
         _pack_dir = packdir + filename + packsuffix;
 
-        //URL: 备份文件路径:./backdir/a.txt   ->    /download/a.txt
-        std::string download_prefix = cf->GetDownloadPrefix();
-        _url = download_prefix + filename;
+        std::string true_path = _real_path.substr(2);
+        //普通文件需要添加下载路径前缀/download/
+        if(_file_type){
+          //URL: 备份文件路径:./backdir/a.txt   ->    /download/a.txt
+          std::string download_prefix = cf->GetDownloadPrefix();
+          _url = download_prefix + true_path;
+        }
+        else{
+          std::string access_prefix = cf->GetAccessPrefix();
+          _url = access_prefix + true_path;
+        }
         return true;
       }
     public:
-      bool _pack_flag;  //判断文件是否已经被压缩了
+      bool _file_type = true;  //文件类型: true为普通文件; false为目录文件
+      bool _pack_flag = false;  //判断文件是否已经被压缩了
       size_t _fsize;    //文件大小
       time_t _mtime;    //文件最后一次修改时间
       time_t _atime;    //文件最后一次访问时间
@@ -102,6 +118,24 @@ namespace CloudBackup{
         return false;
       }
 
+      bool GetCurrentAll(const std::string& cur_path, std::vector<BackupInfo>& output_array){ 
+        pthread_rwlock_rdlock(&_rwlock);
+        for(auto& p : fs::directory_iterator(cur_path))
+        {
+          //std::cerr << "fs: " << p.path() << std::endl;
+          BackupInfo bi;
+          if(GetOneByRealPath(p.path().string(), bi) == false){
+            return false;
+          }
+          auto ret = _path2InfoTable.find(bi._url);
+          if(ret != _path2InfoTable.end()){
+            output_array.emplace_back(ret->second);
+          }
+        }
+        pthread_rwlock_unlock(&_rwlock);
+        return true;
+      }
+
       bool GetAll(std::vector<BackupInfo>& output_array){
         pthread_rwlock_rdlock(&_rwlock);
         for(auto it = _path2InfoTable.begin(); it != _path2InfoTable.end(); ++it)
@@ -126,6 +160,7 @@ namespace CloudBackup{
         for(size_t i = 0; i < data.size(); ++i)
         {
           Json::Value tmp;
+          tmp["file_type"] = data[i]._file_type;
           tmp["pack_flag"] = data[i]._pack_flag;
           tmp["fsize"] = static_cast<int>(data[i]._fsize);
           tmp["mtime"] = static_cast<int>(data[i]._mtime);
@@ -165,6 +200,7 @@ namespace CloudBackup{
         for(Json::ArrayIndex i = 0; i < obj.size(); ++i)
         {
           BackupInfo bi;
+          bi._file_type = obj[i]["file_type"].asBool();
           bi._pack_flag = obj[i]["pack_flag"].asBool();
           bi._fsize = obj[i]["fsize"].asInt();
           bi._mtime = obj[i]["mtime"].asInt();
