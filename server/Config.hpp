@@ -25,6 +25,7 @@ namespace CloudBackup{
       std::string GetBackupDir() { return _backup_dir;  }
       std::string GetBackupInfoList() { return _backup_info_list;  }
       std::string GetDownloadPrefix() { return _download_prefix;  }
+      std::string GetAccessPrefix() { return _access_prefix;  }
     private:
       //从CONFIG_FILE中读取配置文件信息
       bool ReadConfigFile(){
@@ -46,6 +47,7 @@ namespace CloudBackup{
         _backup_dir = root["backup_dir"].asString();
         _backup_info_list = root["backup_info_list"].asString();
         _download_prefix = root["download_prefix"].asString();
+        _access_prefix = root["access_prefix"].asString();
 
         //优化: 在这里直接对backDir和packDir进行创建(如果不存在的话)
         //为什么我选择在这里直接创建了呢?
@@ -71,7 +73,8 @@ namespace CloudBackup{
       std::string _pack_dir;    //压缩包的存放路径
       std::string _backup_dir;  //备份文件的存放路径
       std::string _backup_info_list;  //备份文件数据信息列表(这里把备份文件的信息存放到了cloud.dat文件里了)
-      std::string _download_prefix;   //下载备份文件时需要为下载请求URL添加的前缀
+      std::string _download_prefix;   //下载备份文件时需要为下载请求URL添加的前缀以用于触发对应响应
+      std::string _access_prefix;     //访问目录文件时需要为URL添加访问前缀以用于触发对应响应
   };
   
   Config* Config::_inst = nullptr;
