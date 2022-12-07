@@ -99,10 +99,10 @@ int main(int argc, char* argv[])
   //test_HotManager();
   //test_Service();
   
-  //std::thread hotm_thread(test_HotManager);
+  std::thread hotm_thread(test_HotManager);
   std::thread service_thread(test_Service);
 
-  //hotm_thread.join();
+  hotm_thread.join();
   service_thread.join();
 
   return 0;

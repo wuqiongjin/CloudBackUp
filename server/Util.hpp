@@ -48,6 +48,9 @@ namespace CloudBackup{
       }
 
       std::string Time2String(time_t t){
+        //std::string timestr = ctime(&t);
+        //timestr = timestr.substr(timestr.find(' ') + 1);
+        //return timestr;
         return ctime(&t);  //该函数返回一个char*
       }
 

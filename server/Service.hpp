@@ -37,6 +37,7 @@ namespace CloudBackup{
         Config* cf = Config::GetInstance();
         std::string realpath = cf->GetBackupDir() + file.filename;  //注意, 这里的backupDir路径是: ./backupDir/  因此客户端上传的文件名不需要携带'/'前缀, 形如:myWork/a.txt
         std::string content = file.content;
+        
 
         //Extra:将字符串编码由GBK转为UTF-8
         std::string root = cf->GetBackupDir() + file.filename.substr(0, file.filename.find("/"));
@@ -44,12 +45,24 @@ namespace CloudBackup{
         auto utf_root = p_root.u8string();
         fs::path p_filename{realpath, std::locale("zh_CN.gbk")};
         auto utf_realpath = p_filename.u8string();
-        fs::path p_content{content, std::locale("zh_CN.gbk")};
-        auto utf_content = p_content.u8string();
+        //fs::path p_content{content, std::locale("zh_CN.gbk")};  //普通文件的content不需要转换(只有stru需要,因为要读取到内存中, 而普通文件只是进行文件的写入操作而已)
+        //auto utf_content = p_content.u8string();
+
+
         
-        //3. 判断是否是xxx_dir.stru目录结构文件; 如果是, 则创建对应目录树结构
+        //3. 判断是否是xxx_dir.stru目录结构文件, 注意: stru文件内容可能为空; 
+        //    如果是, 则创建对应目录树结构
+        //    如果stru文件内容为空, 说明备份的目录下面不存在子目录(此时只需要创建根目录即可)
         size_t pos = file.filename.rfind("_dir.stru");
         if(pos != std::string::npos){
+          //stru文件的content编码转换
+          fs::path p_content{content, std::locale("zh_CN.gbk")};
+          auto utf_content = p_content.u8string();
+          
+          //如果stru文件为空, 别忘了创建root备份目录本身
+          if(file.content.size() == 0){
+            fs::create_directory(utf_root);
+          } 
           //3.1 创建相应目录结构
           auto dir_tree = FileUtil::Split(utf_content, "\n");
           //3.2 为目录结构的每条目录信息, 拼接backupDir前缀
@@ -70,7 +83,7 @@ namespace CloudBackup{
           {
             BackupInfo bi;
             bi.NewBackupInfo(p.path().string());
-            //std::cerr << bi._url << std::endl;
+            std::cout << bi._url << std::endl;
             _datam->Insert(bi);
           }
           return;
@@ -81,7 +94,7 @@ namespace CloudBackup{
         //FileUtil fu(realpath);
         //fu.SetContent(content);
         FileUtil fu(utf_realpath);
-        fu.SetContent(utf_content);
+        fu.SetContent(content);
  
         //5. 修改数据备份信息
         BackupInfo bi;
@@ -89,7 +102,7 @@ namespace CloudBackup{
         _datam->Insert(bi);
       }
 
-      //列表展示请求
+      //列表展示请求(只用于主页的访问, 跳转页面本质都是access子目录)
       //1. 读取数据备份信息
       //2. 根据备份信息, 组织HTML文件数据以用于展示信息
       //3. 填充响应对象rsp
@@ -98,33 +111,50 @@ namespace CloudBackup{
         std::vector<BackupInfo> fileInfo;
         //_datam->GetAll(fileInfo);
         Config* cf = Config::GetInstance();
-        _datam->GetCurrentAll(cf->GetBackupDir(), fileInfo);
-        //std::cerr << fileInfo.size() << std::endl;
+        BackupInfo bi;
+        std::string tmp = cf->GetBackupDir();
+        tmp.pop_back(); //去除最后多余的'/'。 因为Cloud.conf配置中是./backupDir/, 多了一个/，这是为了方便拼接后面的路径
+        bi.NewBackupInfo(tmp); //这里new的backupinfo不能插入到cloud.dat中
+        _datam->GetCurrentAll(bi._url, fileInfo);
 
         //2. 根据备份信息, 组织HTML文件数据以用于展示信息
         std::stringstream ss;
         ss << "<html><head><meta charset='UTF-8'><title>Download Page</title></head>";
         ss << "<body><h1>Download</h1><table>";
-        ss << "<h2><tr><td align='right'>FileName</td><td align='right'>LastModifyTime</td><td align='right'>FileSize</td></tr></h2>";
+        ss << "<table><tr><th>&nbsp;</th><th>FileName</th><th>LastModifyTime</th><th>FileSize</th></tr><tr><th colspan='5'><hr /></th></tr>";
+        //ss << "<h2><tr><td align='right'>FileName</td><td align='right'>LastModifyTime</td><td align='right'>FileSize</td></tr></h2>";
         for(auto& fi : fileInfo){
           FileUtil fu(fi._real_path);
           ss << "<tr>";
           //2.1 目录文件的显示
           if(fi._file_type == false){
-            ss << "<td><a href='" << fi._url << "'>" << fu.FileName() + "/" << "</a></td>";
+            ss << "<td valign='top'>&nbsp;</td><td><a href='" << fi._url << "'>" << \
+              fu.FileName() + "/" << "</a></td>";
             ss << "<td align='right'>" << fu.Time2String(fi._mtime) << "</td>";
-            ss << "<td align='right'>" << "-" << "</td>";
+            ss << "<td align='right'>" << "-" << "</td><td>&nbsp;</td>";
+
+
+            //ss << "<td><a href='" << fi._url << "'>" << fu.FileName() + "/" << "</a></td>";
+            //ss << "<td align='right'>" << fu.Time2String(fi._mtime) << "</td>";
+            //ss << "<td align='right'>" << "-" << "</td>";
           }
           else{
             //2.2 普通文件的显示
-            ss << "<td><a href='" << fi._url << "'>" << fu.FileName() << "</a></td>";
+            ss << "<td valign='top'>&nbsp;</td><td><a href='" << fi._url <<  "'>" << \
+              fu.FileName() << "</a></td>";
             ss << "<td align='right'>" << fu.Time2String(fi._mtime) << "</td>";
-            //ss << "<td align='right'>" << fu.FileSize() / 1024 << "KB</td>";  //由于文件可能被压缩, 此时real_path路径下可能不存在该文件, 我们在使用fu.FileSize()时涉及访问该文件。因此会出问题!
             ss << "<td align='right'>" << fi._fsize / 1024 << "KB</td>";
+
+
+            //ss << "<td><a href='" << fi._url << "'>" << fu.FileName() << "</a></td>";
+            //ss << "<td align='right'>" << fu.Time2String(fi._mtime) << "</td>";
+            ////ss << "<td align='right'>" << fu.FileSize() / 1024 << "KB</td>";  //由于文件可能被压缩, 此时real_path路径下可能不存在该文件, 我们在使用fu.FileSize()时涉及访问该文件。因此会出问题!
+            //ss << "<td align='right'>" << fi._fsize / 1024 << "KB</td>";
           }
 
           ss << "</tr>";
         }
+        ss << "<tr><th colspan='5'><hr /></th></tr>";
         ss << "</table></body></html>";
 
         //3. 填充响应对象rsp
@@ -225,11 +255,9 @@ namespace CloudBackup{
           rsp.body = "Resource Not Found!";
         }
 
-        //std::vector<std::string> contained_files;
-        //FileUtil fu(bi._real_path);
-        //fu.ScanCurrentDirectory(contained_files);
         std::vector<BackupInfo> contained_files;
-        _datam->GetCurrentAll(bi._real_path, contained_files);
+        _datam->GetCurrentAll(bi._url, contained_files);
+        //std::cout << "Access: " << contained_files.size() << std::endl;
 
         //3.
         std::string backupDir = Config::GetInstance()->GetBackupDir();
@@ -239,25 +267,37 @@ namespace CloudBackup{
         std::stringstream ss;
         ss << "<html><head><meta charset='UTF-8'><title>Download Page</title></head>";
         ss << "<body><h1>Download/" << subdir << "</h1><table>";
+        ss << "<table><tr><th>&nbsp;</th><th>FileName</th><th>LastModifyTime</th><th>FileSize</th></tr><tr><th colspan='5'><hr /></th></tr>";
         for(auto& fi : contained_files)
         {
           FileUtil fu(fi._real_path);
           ss << "<tr>";
           //3.1 目录文件的显示
           if(fi._file_type == false){
-            ss << "<td><a href='" << fi._url << "'>" << fu.FileName() + "/" << "</a></td>";
+            ss << "<td valign='top'>&nbsp;</td><td><a href='" << fi._url << "'>" << \
+              fu.FileName() + "/" << "</a></td>";
             ss << "<td align='right'>" << fu.Time2String(fi._mtime) << "</td>";
-            ss << "<td align='right'>" << "-" << "</td>";
+            ss << "<td align='right'>" << "-" << "</td><td>&nbsp;</td>";
+
+            //ss << "<td><a href='" << fi._url << "'>" << fu.FileName() + "/" << "</a></td>";
+            //ss << "<td align='right'>" << fu.Time2String(fi._mtime) << "</td>";
+            //ss << "<td align='right'>" << "-" << "</td>";
           }
           else{
             //2.2 普通文件的显示
-            ss << "<td><a href='" << fi._url << "'>" << fu.FileName() << "</a></td>";
+            ss << "<td valign='top'>&nbsp;</td><td><a href='" << fi._url <<  "'>" << \
+              fu.FileName() << "</a></td>";
             ss << "<td align='right'>" << fu.Time2String(fi._mtime) << "</td>";
             ss << "<td align='right'>" << fi._fsize / 1024 << "KB</td>";
+
+            //ss << "<td><a href='" << fi._url << "'>" << fu.FileName() << "</a></td>";
+            //ss << "<td align='right'>" << fu.Time2String(fi._mtime) << "</td>";
+            //ss << "<td align='right'>" << fi._fsize / 1024 << "KB</td>";
           }
 
           ss << "</tr>";
         }
+        ss << "<tr><th colspan='5'><hr /></th></tr>";
         ss << "</table></body></html>";
 
         //4.

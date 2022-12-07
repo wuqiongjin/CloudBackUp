@@ -118,20 +118,52 @@ namespace CloudBackup{
         return false;
       }
 
-      bool GetCurrentAll(const std::string& cur_path, std::vector<BackupInfo>& output_array){ 
+      //2个参数, 第一个cur_path_url, 表示当前层root的URL路径
+      //思路:
+      //1. 去除/access和/download前缀
+      //2. 
+      bool GetCurrentAll(const std::string& cur_path_url, std::vector<BackupInfo>& output_array){ 
         pthread_rwlock_rdlock(&_rwlock);
-        for(auto& p : fs::directory_iterator(cur_path))
+        //找公共前缀, 然后判断 是否位于当前层cur_path下
+        //如: /download/backupDir/work/a.txt            在当前层
+        //    /access/backupDir/work/KiraKira           在当前层, 但是需要去除前缀
+        //    /download/backupDir/work/KiraKira/b.txt   不在当前层
+        //    /download/backupDir/ripDir/funtion.md     不在当前层
+        //    /access/backupDir/work                    在当前层,但是是备份目录本身(不能加入结果集)
+        
+        //去除 下载/访问 URL前缀 /download & /access
+        std::string noprefix_url = cur_path_url.substr(cur_path_url.find('/', 1));
+
+        //std::cout << "GetCurrentAll: cur_path_url= " << cur_path_url << std::endl;
+        //std::cout << "GetCurrentAll: " << _path2InfoTable.size() << std::endl;
+
+        for(auto& [f, s] : _path2InfoTable)
         {
-          //std::cerr << "fs: " << p.path() << std::endl;
-          BackupInfo bi;
-          if(GetOneByRealPath(p.path().string(), bi) == false){
-            return false;
+          std::cout << f << std::endl;
+          size_t pos = f.find(noprefix_url);
+          //前缀路径都不同, 说明一定不是一个目录树分支下的
+          if(pos == std::string::npos){
+            continue;
           }
-          auto ret = _path2InfoTable.find(bi._url);
-          if(ret != _path2InfoTable.end()){
-            output_array.emplace_back(ret->second);
+          pos += noprefix_url.size() + 1;
+          if(f.find('/', pos) == std::string::npos && f != cur_path_url){
+            output_array.emplace_back(s);
           }
         }
+
+
+        //for(auto& p : fs::directory_iterator(cur_path))
+        //{
+        //  //std::cerr << "fs: " << p.path() << std::endl;
+        //  BackupInfo bi;
+        //  if(GetOneByRealPath(p.path().string(), bi) == false){
+        //    return false;
+        //  }
+        //  auto ret = _path2InfoTable.find(bi._url);
+        //  if(ret != _path2InfoTable.end()){
+        //    output_array.emplace_back(ret->second);
+        //  }
+        //}
         pthread_rwlock_unlock(&_rwlock);
         return true;
       }
