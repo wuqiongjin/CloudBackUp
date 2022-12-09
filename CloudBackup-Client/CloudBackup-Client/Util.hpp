@@ -4,6 +4,7 @@
 #include <vector>
 #include <sstream>
 #include <fstream>
+#include <regex>
 #include <ctime>
 #include <experimental/filesystem>
 //#include <jsoncpp/json/json.h>
@@ -12,12 +13,24 @@
 namespace fs = std::experimental::filesystem;
 
 namespace CloudBackup {
+	//文件实用工具类:
+	//这个类既能够给普通文件使用, 也能够给目录文件使用
 	class FileUtil {
 	public:
 		FileUtil(const std::string& name) 
-			:_filename(name),
-			 _is_absolute_path(fs::path(name).is_absolute())
-		{}
+			:_filename(name)
+			//,_is_absolute_path(fs::path(name).is_absolute())
+		{
+			//统一目录名称 --> 相对路径
+			if (fs::is_directory(name)) {
+				UnifyDirectoryName(name);
+			}
+			//普通文件不处理
+		}
+
+		bool RemoveFile(const std::string& filename) {
+			return fs::remove(filename);	//不管它是否存在, 都会进行删除; 不存在false, 存在true
+		}
 
 		size_t FileSize() {
 			if (stat(_filename.c_str(), &_st) < 0) {
@@ -90,7 +103,7 @@ namespace CloudBackup {
 			return true;
 		}
 
-		//!下面三个函数是针对"目录"文件相关的操作函数!
+		//!下面三个函数是针对"目录"文件相关的操作函数! (Exists、CreateDriectory、ScanDirectory)
 //判断filename这个目录是否存在
 		bool Exists() {
 			return fs::exists(_filename);
@@ -107,11 +120,15 @@ namespace CloudBackup {
 		//遍历filename目录下的所有文件, 将文件存储到array数组中(输出型参数)
 		//注意: 存入到array的文件名称是'相对路径', 我们不是只存文件的名字, 我们还需要存它的前缀路径(相对的)
 		bool ScanDirectory(std::vector<std::string>& output_array) {
+			std::string file_tree = _filename + "\\" + FileName() + "_dir.stru";
+			RemoveFile(file_tree);	//提前清除目录结构文件(为了保证它是第一个数组元素)
+			output_array.emplace_back(file_tree);	//保证第一个元素一定是目录结构文件
 			//扩展: 这里使用recursive_directory_iterator可以递归遍历到filename目录下的所有文件(包含其子目录的文件), 那么是否可以把目录也上传到服务器呢?
-			for (auto& p : fs::directory_iterator(_filename)) {
-				output_array.emplace_back(fs::path(p).string());
-
-
+			for (auto& p : fs::recursive_directory_iterator(_filename)) {
+				if (fs::is_directory(p) == false) {
+					output_array.emplace_back(fs::path(p).string());
+					std::cout << output_array.back() << std::endl;
+				}
 
 				////判断是否是目录文件, 将非目录文件添加到array数组中
 				//if (fs::is_directory(p) == false) {
@@ -124,12 +141,52 @@ namespace CloudBackup {
 				//	}
 				//}
 			}
+			//最后生成一下 目录结构文件
+			return GenerateStructureFile();
+		}
+
+		//返回生成的目录结构文件名称
+		bool GenerateStructureFile() {
+			std::string res;
+			std::string line;
+			std::regex r("\\\\");	//将\\替换为/
+			for (auto p = fs::recursive_directory_iterator(_filename); p != fs::recursive_directory_iterator(); ++p)
+			{
+				if (fs::is_directory(p->path())) {
+					line = p->path().string();
+					line = std::regex_replace(line, r, "/");
+					line.erase(0, 2);	//这边删不删都不影响服务端那边创建目录
+					res += line + "\n";
+				}
+			}
+			if (res != "") {
+				res.resize(res.size() - 1);	//删除最后多加的'\n'
+			}
+			std::string file_tree = _filename + "\\" + FileName() + "_dir.stru";
+			FileUtil fu(file_tree);	//备份根目录下会生成xxx_dir.stru目录结构文件
+			fu.SetContent(res);
+			return true;
+		}
+
+		//统一化目录名称 ---> 相对路径
+		bool UnifyDirectoryName(const std::string& name){
+			//原始工作目录
+			std::string original_work_dir = fs::current_path().string();
+
+			fs::current_path(name);						//改变当前工作目录到name目录下
+			auto absolute_path = fs::current_path().string();	//获取当前工作目录的绝对路径
+			int pos = absolute_path.rfind("\\");		//找到备份的目录名称
+			_filename = ".\\";
+			_filename += absolute_path.substr(pos + 1);	//获取相对路径	.\\backupDir\\xxx的形式
+			//std::cout << fs::current_path() << std::endl;
+			fs::current_path(original_work_dir);		//回到原始工作目录(以防影响后续使用FileUtil类)
+			//std::cout << fs::current_path() << std::endl;
 			return true;
 		}
 
 	private:
 		std::string _filename;
 		struct stat _st;
-		bool _is_absolute_path = true;
+		//bool _is_absolute_path = true;
 	};
 }

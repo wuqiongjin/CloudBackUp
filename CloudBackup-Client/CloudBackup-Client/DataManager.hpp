@@ -28,7 +28,7 @@ namespace CloudBackup {
 			auto arr = Split(content, "\n");
 			for (auto& str : arr)
 			{
-				auto line = Split(str, ":");
+				auto line = Split(str, "?");
 				_path2Tag[line[0]] = line[1];
 			}
 			return true;
@@ -38,7 +38,7 @@ namespace CloudBackup {
 			std::stringstream ss;
 			for (auto& p : _path2Tag)
 			{
-				ss << p.first << ":" << p.second << "\n";	//我们在这里人为定义key:value的切割符为冒号":"、不同的文件之间使用\n间隔
+				ss << p.first << "?" << p.second << "\n";	//我们在这里人为定义key?value的切割符为冒号":"、不同的文件之间使用\n间隔
 			}
 			FileUtil fu(_persistence_file);
 			fu.SetContent(ss.str());
