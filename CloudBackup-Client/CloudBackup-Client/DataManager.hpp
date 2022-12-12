@@ -1,23 +1,23 @@
-#pragma once
+ï»¿#pragma once
 #include <unordered_map>
 #include "Util.hpp"
-constexpr auto PERSISTENCE_FILE_DATA = "./cloud.dat";
+constexpr auto PERSISTENCE_FILE_DATA = "\\cloud.dat";
 
 //Tag: filename-fsize-LastModifyTime
 
-//¿Í»§¶ËÖ»Ê¹ÓÃÒ»¸öÏß³ÌÀ´¹ÜÀíÖ¸¶¨Ä¿Â¼ÏÂµÄÎÄ¼ş£¬Òò´ËÕâÀï¶ÔÓÚÊı¾İ¹ÜÀíÄ£¿é¶øÑÔ£¬¿ÉÒÔ²»Ê¹ÓÃËø
+//å®¢æˆ·ç«¯åªä½¿ç”¨ä¸€ä¸ªçº¿ç¨‹æ¥ç®¡ç†æŒ‡å®šç›®å½•ä¸‹çš„æ–‡ä»¶ï¼Œå› æ­¤è¿™é‡Œå¯¹äºæ•°æ®ç®¡ç†æ¨¡å—è€Œè¨€ï¼Œå¯ä»¥ä¸ä½¿ç”¨é”
 namespace CloudBackup {
 	class DataManager {
 	public:
-		DataManager()
-			:_persistence_file(PERSISTENCE_FILE_DATA)
+		DataManager(const std::string& backdir)
+			:_persistence_file(backdir + PERSISTENCE_FILE_DATA)
 		{
 			InitLoad();
 		}
 
 		bool InitLoad() {
 			FileUtil fu(_persistence_file);
-			//×¢Òâ! ÕâÀïÒªÅĞ¶ÏÒ»ÏÂÎÄ¼şÊÇ·ñ´æÔÚ, ÎÄ¼ş²»´æÔÚµÄ»°Ö±½Óreturn true
+			//æ³¨æ„! è¿™é‡Œè¦åˆ¤æ–­ä¸€ä¸‹æ–‡ä»¶æ˜¯å¦å­˜åœ¨, æ–‡ä»¶ä¸å­˜åœ¨çš„è¯ç›´æ¥return true
 			if (fu.Exists() == false) {
 				return true;
 			}
@@ -38,7 +38,7 @@ namespace CloudBackup {
 			std::stringstream ss;
 			for (auto& p : _path2Tag)
 			{
-				ss << p.first << "?" << p.second << "\n";	//ÎÒÃÇÔÚÕâÀïÈËÎª¶¨Òåkey?valueµÄÇĞ¸î·ûÎªÃ°ºÅ":"¡¢²»Í¬µÄÎÄ¼şÖ®¼äÊ¹ÓÃ\n¼ä¸ô
+				ss << p.first << "?" << p.second << "\n";	//æˆ‘ä»¬åœ¨è¿™é‡Œäººä¸ºå®šä¹‰key?valueçš„åˆ‡å‰²ç¬¦ä¸ºå†’å·":"ã€ä¸åŒçš„æ–‡ä»¶ä¹‹é—´ä½¿ç”¨\né—´éš”
 			}
 			FileUtil fu(_persistence_file);
 			fu.SetContent(ss.str());
@@ -74,17 +74,17 @@ namespace CloudBackup {
 			size_t pos = 0, prev = 0;
 			while ((pos = s.find(sep, prev)) != std::string::npos)
 			{
-				//³öÏÖÁË2¸ösepÁ¬ÔÚÁËÒ»Æğ, ´ËÊ±Ìø¹ı
+				//å‡ºç°äº†2ä¸ªsepè¿åœ¨äº†ä¸€èµ·, æ­¤æ—¶è·³è¿‡
 				if (prev == pos) {
-					prev = pos + sep.size();	//±ğÍüÁËĞŞ¸ÄprevµÄÖµ
+					prev = pos + sep.size();	//åˆ«å¿˜äº†ä¿®æ”¹prevçš„å€¼
 					continue;
 				}
 				res.emplace_back(s.substr(prev, pos - prev));
-				prev = pos + sep.size();	//ÕâÀïÊÇ+sep.size(), ÒòÎªsep¿ÉÄÜ²»ÊÇÒ»¸ö×Ö·û
+				prev = pos + sep.size();	//è¿™é‡Œæ˜¯+sep.size(), å› ä¸ºsepå¯èƒ½ä¸æ˜¯ä¸€ä¸ªå­—ç¬¦
 			}
 
-			//ÓÉÓÚÎÒÃÇµÄ´«Èë²ÎÊısÊÇconstÊôĞÔ, ËùÒÔÎÒÃÇÃ»°ì·¨Í¨¹ıÔÚsµÄ×îºó+=sepµÄ·½·¨À´È·±£ÔÚÉÏÃæµÄwhileÑ­»·Ò»¶¨ÄÜ¹»ÇĞÈ¡µ½×îºóÒ»²¿·Ö×Ö·û´®
-			//Òò´Ë£¬ÎÒÃÇÕâÀïÍ¨¹ıÅĞ¶ÏprevµÄÏÂ±êÀ´±£Ö¤»ñÈ¡µ½×îºóÒ»²¿·ÖµÄÊı¾İ¡£(Èç12/23/34, ´ËÊ±34¾ÍÖ»ÄÜÔÚwhileÑ­»·ÍâÃæ´¦ÀíÁË)
+			//ç”±äºæˆ‘ä»¬çš„ä¼ å…¥å‚æ•°sæ˜¯constå±æ€§, æ‰€ä»¥æˆ‘ä»¬æ²¡åŠæ³•é€šè¿‡åœ¨sçš„æœ€å+=sepçš„æ–¹æ³•æ¥ç¡®ä¿åœ¨ä¸Šé¢çš„whileå¾ªç¯ä¸€å®šèƒ½å¤Ÿåˆ‡å–åˆ°æœ€åä¸€éƒ¨åˆ†å­—ç¬¦ä¸²
+			//å› æ­¤ï¼Œæˆ‘ä»¬è¿™é‡Œé€šè¿‡åˆ¤æ–­prevçš„ä¸‹æ ‡æ¥ä¿è¯è·å–åˆ°æœ€åä¸€éƒ¨åˆ†çš„æ•°æ®ã€‚(å¦‚12/23/34, æ­¤æ—¶34å°±åªèƒ½åœ¨whileå¾ªç¯å¤–é¢å¤„ç†äº†)
 			if (prev < s.size())
 			{
 				res.emplace_back(s.substr(prev));
@@ -93,7 +93,7 @@ namespace CloudBackup {
 		}
 
 	private:
-		std::string _persistence_file = PERSISTENCE_FILE_DATA;	//³Ö¾Ã»¯´æ´¢ÎÄ¼ş(±¸·İĞÅÏ¢´æ´¢ÎÄ¼ş)
-		std::unordered_map<std::string, std::string> _path2Tag;	//ÎÄ¼şÂ·¾¶ : ÎÄ¼şÎ¨Ò»±êÊ¶·ûTag
+		std::string _persistence_file = PERSISTENCE_FILE_DATA;	//æŒä¹…åŒ–å­˜å‚¨æ–‡ä»¶(å¤‡ä»½ä¿¡æ¯å­˜å‚¨æ–‡ä»¶)
+		std::unordered_map<std::string, std::string> _path2Tag;	//æ–‡ä»¶è·¯å¾„ ? æ–‡ä»¶å”¯ä¸€æ ‡è¯†ç¬¦Tag
 	};
 }
