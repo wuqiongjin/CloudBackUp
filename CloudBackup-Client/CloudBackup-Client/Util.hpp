@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <iostream>
 #include <string>
 #include <vector>
@@ -13,29 +13,32 @@
 namespace fs = std::experimental::filesystem;
 
 namespace CloudBackup {
-	//ÎÄ¼şÊµÓÃ¹¤¾ßÀà:
-	//Õâ¸öÀà¼ÈÄÜ¹»¸øÆÕÍ¨ÎÄ¼şÊ¹ÓÃ, Ò²ÄÜ¹»¸øÄ¿Â¼ÎÄ¼şÊ¹ÓÃ
+	//æ–‡ä»¶å®ç”¨å·¥å…·ç±»:
+	//è¿™ä¸ªç±»æ—¢èƒ½å¤Ÿç»™æ™®é€šæ–‡ä»¶ä½¿ç”¨, ä¹Ÿèƒ½å¤Ÿç»™ç›®å½•æ–‡ä»¶ä½¿ç”¨
 	class FileUtil {
 	public:
 		FileUtil(const std::string& name) 
 			:_filename(name)
 			//,_is_absolute_path(fs::path(name).is_absolute())
 		{
-			//Í³Ò»Ä¿Â¼Ãû³Æ --> Ïà¶ÔÂ·¾¶
+			//ç»Ÿä¸€ç›®å½•åç§° --> ç›¸å¯¹è·¯å¾„
 			if (fs::is_directory(name)) {
 				UnifyDirectoryName(name);
 			}
-			//ÆÕÍ¨ÎÄ¼ş²»´¦Àí
+			//æ™®é€šæ–‡ä»¶ä¸å¤„ç†
 		}
 
+		const std::string& GetAbsolutePath() { return _absolute_path; }
+		const std::string& GetRelativePath() { return _relative_path; }
+
 		bool RemoveFile(const std::string& filename) {
-			return fs::remove(filename);	//²»¹ÜËüÊÇ·ñ´æÔÚ, ¶¼»á½øĞĞÉ¾³ı; ²»´æÔÚfalse, ´æÔÚtrue
+			return fs::remove(filename);	//ä¸ç®¡å®ƒæ˜¯å¦å­˜åœ¨, éƒ½ä¼šè¿›è¡Œåˆ é™¤; ä¸å­˜åœ¨false, å­˜åœ¨true
 		}
 
 		size_t FileSize() {
 			if (stat(_filename.c_str(), &_st) < 0) {
 				std::cerr << "Get FileSize Failed!" << std::endl;
-				return 0;	//·µ»Ø0±íÊ¾ÎÄ¼ş²»´æÔÚ
+				return 0;	//è¿”å›0è¡¨ç¤ºæ–‡ä»¶ä¸å­˜åœ¨
 			}
 			return _st.st_size;
 		}
@@ -57,13 +60,13 @@ namespace CloudBackup {
 		}
 
 		std::string FileName() {
-			//// ../abc/test.txt  »ñÈ¡µ½×îºóµÄtest.txt
-			//auto pos = _filename.rfind('\\');	//×¢Òâ, ÕâÀïÕÒµ½µÄÊÇ'\', LinuxÏÂµÄÄ¿Â¼·Ö¸ô·ûºÍWindowsÏÂ²»Í¬!
+			//// ../abc/test.txt  è·å–åˆ°æœ€åçš„test.txt
+			//auto pos = _filename.rfind('\\');	//æ³¨æ„, è¿™é‡Œæ‰¾åˆ°çš„æ˜¯'\', Linuxä¸‹çš„ç›®å½•åˆ†éš”ç¬¦å’ŒWindowsä¸‹ä¸åŒ!
 			//if (pos == std::string::npos) {
 			//	return _filename;
 			//}
 			//return _filename.substr(pos + 1);
-			return fs::path(_filename).filename().string();	//C++17µÄÎÄ¼şÏµÍ³¿âµÄ½Ó¿ÚÊÇ¿çÆ½Ì¨µÄ
+			return fs::path(_filename).filename().string();	//C++17çš„æ–‡ä»¶ç³»ç»Ÿåº“çš„æ¥å£æ˜¯è·¨å¹³å°çš„
 		}
 
 		bool GetPosLenContent(std::string& output_content, size_t pos, size_t len) {
@@ -73,25 +76,25 @@ namespace CloudBackup {
 				return false;
 			}
 
-			output_content.resize(len - pos, '\0');  //!!! ÕâÀï±ØĞëÒªÏÈresize, ²»È»ºóÃæreadµÄÊ±ºòÃ»·¨ĞŞ¸Ästring
+			output_content.resize(len - pos, '\0');  //!!! è¿™é‡Œå¿…é¡»è¦å…ˆresize, ä¸ç„¶åé¢readçš„æ—¶å€™æ²¡æ³•ä¿®æ”¹string
 
-			std::ifstream ifs(_filename, std::ios::binary);  //ifsÄ¬ÈÏ¶ÁÎÄ¼ş (fstreamĞèÒªÖ¸¶¨¶ÁĞ´)
+			std::ifstream ifs(_filename, std::ios::binary);  //ifsé»˜è®¤è¯»æ–‡ä»¶ (fstreaméœ€è¦æŒ‡å®šè¯»å†™)
 			if (ifs.is_open() == false) {
 				std::cerr << "open ReadFile failed!" << std::endl;
 				return false;
 			}
-			ifs.seekg(pos, std::ios::beg);  //´Óbeg´¦ÍùºóÆ«ÒÆpos³¤¶È
+			ifs.seekg(pos, std::ios::beg);  //ä»begå¤„å¾€ååç§»posé•¿åº¦
 			ifs.read(&output_content[0], len);
 			ifs.close();
 			return true;
 		}
 
-		//¶ÁÈ¡µ±Ç°Àà±£´æµÄfilenameµÄÈ«²¿ÄÚÈİ
+		//è¯»å–å½“å‰ç±»ä¿å­˜çš„filenameçš„å…¨éƒ¨å†…å®¹
 		bool GetContent(std::string& output_content) {
 			return this->GetPosLenContent(output_content, 0, this->FileSize());
 		}
 
-		//Ğ´Èëµ½µ±Ç°ÀàËù±£´æµÄfilenameÎÄ¼şÖĞ, Ğ´ÈëµÄÄÚÈİÊÇcontent
+		//å†™å…¥åˆ°å½“å‰ç±»æ‰€ä¿å­˜çš„filenameæ–‡ä»¶ä¸­, å†™å…¥çš„å†…å®¹æ˜¯content
 		bool SetContent(const std::string& content) {
 			std::ofstream ofs(_filename, std::ios::binary);
 			if (ofs.is_open() == false) {
@@ -103,36 +106,41 @@ namespace CloudBackup {
 			return true;
 		}
 
-		//!ÏÂÃæÈı¸öº¯ÊıÊÇÕë¶Ô"Ä¿Â¼"ÎÄ¼şÏà¹ØµÄ²Ù×÷º¯Êı! (Exists¡¢CreateDriectory¡¢ScanDirectory)
-//ÅĞ¶ÏfilenameÕâ¸öÄ¿Â¼ÊÇ·ñ´æÔÚ
+		//!ä¸‹é¢ä¸‰ä¸ªå‡½æ•°æ˜¯é’ˆå¯¹"ç›®å½•"æ–‡ä»¶ç›¸å…³çš„æ“ä½œå‡½æ•°! (Existsã€CreateDriectoryã€ScanDirectory)
+//åˆ¤æ–­filenameè¿™ä¸ªç›®å½•æ˜¯å¦å­˜åœ¨
 		bool Exists() {
 			return fs::exists(_filename);
 		}
 
-		//µ±filenameÄ¿Â¼²»´æÔÚÊ±, ´´½¨¸ÃÄ¿Â¼
+		//å½“filenameç›®å½•ä¸å­˜åœ¨æ—¶, åˆ›å»ºè¯¥ç›®å½•
 		bool CreateDirectory() {
 			//if(this->Exists()){
 			//  return true;
 			//}
-			return fs::create_directory(_filename); //Ëü»á×Ô¶¯ÅĞ¶Ï, Èç¹ûÄ¿Â¼ÒÑ¾­´æÔÚ, ²»»á×öÈÎºÎ´¦Àí; Ä¿Â¼²»´æÔÚÔò´´½¨Ä¿Â¼
+			return fs::create_directory(_filename); //å®ƒä¼šè‡ªåŠ¨åˆ¤æ–­, å¦‚æœç›®å½•å·²ç»å­˜åœ¨, ä¸ä¼šåšä»»ä½•å¤„ç†; ç›®å½•ä¸å­˜åœ¨åˆ™åˆ›å»ºç›®å½•
 		}
 
-		//±éÀúfilenameÄ¿Â¼ÏÂµÄËùÓĞÎÄ¼ş, ½«ÎÄ¼ş´æ´¢µ½arrayÊı×éÖĞ(Êä³öĞÍ²ÎÊı)
-		//×¢Òâ: ´æÈëµ½arrayµÄÎÄ¼şÃû³ÆÊÇ'Ïà¶ÔÂ·¾¶', ÎÒÃÇ²»ÊÇÖ»´æÎÄ¼şµÄÃû×Ö, ÎÒÃÇ»¹ĞèÒª´æËüµÄÇ°×ºÂ·¾¶(Ïà¶ÔµÄ)
+		//éå†filenameç›®å½•ä¸‹çš„æ‰€æœ‰æ–‡ä»¶, å°†æ–‡ä»¶å­˜å‚¨åˆ°arrayæ•°ç»„ä¸­(è¾“å‡ºå‹å‚æ•°)
+		//æ³¨æ„: å­˜å…¥åˆ°arrayçš„æ–‡ä»¶åç§°æ˜¯'ç›¸å¯¹è·¯å¾„', æˆ‘ä»¬ä¸æ˜¯åªå­˜æ–‡ä»¶çš„åå­—, æˆ‘ä»¬è¿˜éœ€è¦å­˜å®ƒçš„å‰ç¼€è·¯å¾„(ç›¸å¯¹çš„)
 		bool ScanDirectory(std::vector<std::string>& output_array) {
-			std::string file_tree = _filename + "\\" + FileName() + "_dir.stru";
-			RemoveFile(file_tree);	//ÌáÇ°Çå³ıÄ¿Â¼½á¹¹ÎÄ¼ş(ÎªÁË±£Ö¤ËüÊÇµÚÒ»¸öÊı×éÔªËØ)
-			output_array.emplace_back(file_tree);	//±£Ö¤µÚÒ»¸öÔªËØÒ»¶¨ÊÇÄ¿Â¼½á¹¹ÎÄ¼ş
-			//À©Õ¹: ÕâÀïÊ¹ÓÃrecursive_directory_iterator¿ÉÒÔµİ¹é±éÀúµ½filenameÄ¿Â¼ÏÂµÄËùÓĞÎÄ¼ş(°üº¬Æä×ÓÄ¿Â¼µÄÎÄ¼ş), ÄÇÃ´ÊÇ·ñ¿ÉÒÔ°ÑÄ¿Â¼Ò²ÉÏ´«µ½·şÎñÆ÷ÄØ?
-			for (auto& p : fs::recursive_directory_iterator(_filename)) {
+			//æ”¹å˜å½“å‰å·¥ä½œç›®å½•	(èƒ½è¾¾åˆ°è¿™é‡Œçš„, åªèƒ½æ˜¯"RunModule"è°ƒç”¨çš„ã€‚è¿™ä¹Ÿè¯´æ˜æ­¤æ—¶çš„è·¯å¾„æ˜¯æˆ‘ä»¬éœ€è¦å¤‡ä»½çš„ç›®å½•è·¯å¾„)
+			fs::current_path(_absolute_path + "\\..");
+			
+			std::string file_tree = _relative_path + "\\" + FileName() + "_dir.stru";
+			//std::string relative_file_tree = _relative_path + "\\" + FileName() + "_dir.stru";
+			//std::string absolute_file_tree = _absolute_path + "\\" + FileName() + "_dir.stru";
+			RemoveFile(file_tree);	//æå‰æ¸…é™¤ç›®å½•ç»“æ„æ–‡ä»¶(ä¸ºäº†ä¿è¯å®ƒæ˜¯ç¬¬ä¸€ä¸ªæ•°ç»„å…ƒç´ )
+			output_array.emplace_back(file_tree);	//ä¿è¯ç¬¬ä¸€ä¸ªå…ƒç´ ä¸€å®šæ˜¯ç›®å½•ç»“æ„æ–‡ä»¶
+			//æ‰©å±•: è¿™é‡Œä½¿ç”¨recursive_directory_iteratorå¯ä»¥é€’å½’éå†åˆ°filenameç›®å½•ä¸‹çš„æ‰€æœ‰æ–‡ä»¶(åŒ…å«å…¶å­ç›®å½•çš„æ–‡ä»¶), é‚£ä¹ˆæ˜¯å¦å¯ä»¥æŠŠç›®å½•ä¹Ÿä¸Šä¼ åˆ°æœåŠ¡å™¨å‘¢?
+			for (auto& p : fs::recursive_directory_iterator(_relative_path)) {
 				if (fs::is_directory(p) == false) {
 					output_array.emplace_back(fs::path(p).string());
 					std::cout << output_array.back() << std::endl;
 				}
 
-				////ÅĞ¶ÏÊÇ·ñÊÇÄ¿Â¼ÎÄ¼ş, ½«·ÇÄ¿Â¼ÎÄ¼şÌí¼Óµ½arrayÊı×éÖĞ
+				////åˆ¤æ–­æ˜¯å¦æ˜¯ç›®å½•æ–‡ä»¶, å°†éç›®å½•æ–‡ä»¶æ·»åŠ åˆ°arrayæ•°ç»„ä¸­
 				//if (fs::is_directory(p) == false) {
-				//	//ÅĞ¶ÏÓÃ»§ÊäÈëµÄÂ·¾¶ÊÇÏà¶ÔÂ·¾¶»¹ÊÇ¾ø¶ÔÂ·¾¶(¶ÔÏà¶ÔÂ·¾¶ºÍ¾ø¶ÔÂ·¾¶×÷²»Í¬µÄ´¦Àí)
+				//	//åˆ¤æ–­ç”¨æˆ·è¾“å…¥çš„è·¯å¾„æ˜¯ç›¸å¯¹è·¯å¾„è¿˜æ˜¯ç»å¯¹è·¯å¾„(å¯¹ç›¸å¯¹è·¯å¾„å’Œç»å¯¹è·¯å¾„ä½œä¸åŒçš„å¤„ç†)
 				//	if (_is_absolute_path) {
 				//		output_array.emplace_back(fs::path(p).string());
 				//	}
@@ -141,52 +149,56 @@ namespace CloudBackup {
 				//	}
 				//}
 			}
-			//×îºóÉú³ÉÒ»ÏÂ Ä¿Â¼½á¹¹ÎÄ¼ş
+			//æœ€åç”Ÿæˆä¸€ä¸‹ ç›®å½•ç»“æ„æ–‡ä»¶
 			return GenerateStructureFile();
 		}
 
-		//·µ»ØÉú³ÉµÄÄ¿Â¼½á¹¹ÎÄ¼şÃû³Æ
+		//è¿”å›ç”Ÿæˆçš„ç›®å½•ç»“æ„æ–‡ä»¶åç§°
 		bool GenerateStructureFile() {
 			std::string res;
 			std::string line;
-			std::regex r("\\\\");	//½«\\Ìæ»»Îª/
-			for (auto p = fs::recursive_directory_iterator(_filename); p != fs::recursive_directory_iterator(); ++p)
+			std::regex r("\\\\");	//å°†\\æ›¿æ¢ä¸º/
+			for (auto p = fs::recursive_directory_iterator(_relative_path); p != fs::recursive_directory_iterator(); ++p)
 			{
 				if (fs::is_directory(p->path())) {
 					line = p->path().string();
 					line = std::regex_replace(line, r, "/");
-					line.erase(0, 2);	//Õâ±ßÉ¾²»É¾¶¼²»Ó°Ïì·şÎñ¶ËÄÇ±ß´´½¨Ä¿Â¼
+					line.erase(0, 2);	//è¿™è¾¹åˆ ä¸åˆ éƒ½ä¸å½±å“æœåŠ¡ç«¯é‚£è¾¹åˆ›å»ºç›®å½•
 					res += line + "\n";
 				}
 			}
 			if (res != "") {
-				res.resize(res.size() - 1);	//É¾³ı×îºó¶à¼ÓµÄ'\n'
+				res.resize(res.size() - 1);	//åˆ é™¤æœ€åå¤šåŠ çš„'\n'
 			}
-			std::string file_tree = _filename + "\\" + FileName() + "_dir.stru";
-			FileUtil fu(file_tree);	//±¸·İ¸ùÄ¿Â¼ÏÂ»áÉú³Éxxx_dir.struÄ¿Â¼½á¹¹ÎÄ¼ş
+			std::string file_tree = _relative_path + "\\" + FileName() + "_dir.stru";
+			FileUtil fu(file_tree);	//å¤‡ä»½æ ¹ç›®å½•ä¸‹ä¼šç”Ÿæˆxxx_dir.struç›®å½•ç»“æ„æ–‡ä»¶
 			fu.SetContent(res);
 			return true;
 		}
 
-		//Í³Ò»»¯Ä¿Â¼Ãû³Æ ---> Ïà¶ÔÂ·¾¶
+		//ç»Ÿä¸€åŒ–ç›®å½•åç§° ---> ç›¸å¯¹è·¯å¾„
 		bool UnifyDirectoryName(const std::string& name){
-			//Ô­Ê¼¹¤×÷Ä¿Â¼
+			//åŸå§‹å·¥ä½œç›®å½•
 			std::string original_work_dir = fs::current_path().string();
 
-			fs::current_path(name);						//¸Ä±äµ±Ç°¹¤×÷Ä¿Â¼µ½nameÄ¿Â¼ÏÂ
-			auto absolute_path = fs::current_path().string();	//»ñÈ¡µ±Ç°¹¤×÷Ä¿Â¼µÄ¾ø¶ÔÂ·¾¶
-			int pos = absolute_path.rfind("\\");		//ÕÒµ½±¸·İµÄÄ¿Â¼Ãû³Æ
-			_filename = ".\\";
-			_filename += absolute_path.substr(pos + 1);	//»ñÈ¡Ïà¶ÔÂ·¾¶	.\\backupDir\\xxxµÄĞÎÊ½
-			//std::cout << fs::current_path() << std::endl;
-			fs::current_path(original_work_dir);		//»Øµ½Ô­Ê¼¹¤×÷Ä¿Â¼(ÒÔ·ÀÓ°ÏìºóĞøÊ¹ÓÃFileUtilÀà)
-			//std::cout << fs::current_path() << std::endl;
+			fs::current_path(name);						//æ”¹å˜å½“å‰å·¥ä½œç›®å½•åˆ°nameç›®å½•ä¸‹
+
+			_absolute_path = fs::current_path().string();	//è·å–å½“å‰å·¥ä½œç›®å½•çš„ç»å¯¹è·¯å¾„
+			int pos = _absolute_path.rfind("\\");		//æ‰¾åˆ°å¤‡ä»½çš„ç›®å½•åç§°
+			_relative_path = ".\\";
+			_relative_path += _absolute_path.substr(pos + 1);
+			//_filename = ".\\";
+			//_filename += _absolute_path.substr(pos + 1);	//è·å–ç›¸å¯¹è·¯å¾„	.\\backupDir\\xxxçš„å½¢å¼
+
+			fs::current_path(original_work_dir);		//å›åˆ°åŸå§‹å·¥ä½œç›®å½•(ä»¥é˜²å½±å“åç»­ä½¿ç”¨FileUtilç±»)
 			return true;
 		}
 
 	private:
 		std::string _filename;
 		struct stat _st;
+		std::string _absolute_path;
+		std::string _relative_path;
 		//bool _is_absolute_path = true;
 	};
 }
