@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "DataManager.hpp"
 #include "httplib.h"
 #include <Windows.h>
@@ -6,15 +6,15 @@
 namespace CloudBackup {
 	constexpr auto SERVER_IP = "152.136.211.148";
 	constexpr auto SERVER_PORT = 2333;
-	//ÎÄ¼ş±¸·İºÍÉÏ´«Ä£¿é
-	//1. ±éÀúÖ¸¶¨ÎÄ¼ş¼ĞÏÂµÄÄ¿Â¼
-	//2. ÅĞ¶ÏÎÄ¼şÊÇ·ñĞèÒª±¸·İ(ĞÂµÄÎÄ¼ş/ĞŞ¸ÄµÄÎÄ¼ş) --- ÅĞ¶Ï·½·¨(¸ù¾İTag)
-	//3. ½«ĞèÒª±¸·İµÄÎÄ¼şÉÏ´«, ²¢¸ü¸ÄÎÄ¼şµÄ±¸·İĞÅÏ¢µ½(¹şÏ£±íÖĞ)
+	//æ–‡ä»¶å¤‡ä»½å’Œä¸Šä¼ æ¨¡å—
+	//1. éå†æŒ‡å®šæ–‡ä»¶å¤¹ä¸‹çš„ç›®å½•
+	//2. åˆ¤æ–­æ–‡ä»¶æ˜¯å¦éœ€è¦å¤‡ä»½(æ–°çš„æ–‡ä»¶/ä¿®æ”¹çš„æ–‡ä»¶) --- åˆ¤æ–­æ–¹æ³•(æ ¹æ®Tag)
+	//3. å°†éœ€è¦å¤‡ä»½çš„æ–‡ä»¶ä¸Šä¼ , å¹¶æ›´æ”¹æ–‡ä»¶çš„å¤‡ä»½ä¿¡æ¯åˆ°(å“ˆå¸Œè¡¨ä¸­)
 	class Backup {
 	public:
 		Backup(const std::string& backdir)
 			:_back_dir(backdir),
-			 _datam(new DataManager())
+			 _datam(new DataManager(backdir))
 		{}
 	private:
 		bool Upload(const std::string& filename) {
@@ -27,17 +27,17 @@ namespace CloudBackup {
 			//item.filename = fu.FileName();
 			std::regex r("\\\\");
 			std::string upload_filename = std::regex_replace(filename, r, "/");
-			upload_filename.erase(0, 2);	//·şÎñ¶ËÄÇ±ß´¦ÀíÁËbackupDirµÄÂ·¾¶,±¸·İÄ¿Â¼Îª'./backupDir/', Òò´Ë¿Í»§¶ËÎÄ¼şÃû²»ĞèÒªĞ¯´ø'/'Ç°×º, ÕâÀïÉ¾³ı³¤¶ÈÎª2
-				//ÓĞÒ»ËµÒ», ÕâÀï²»É¾Ó¦¸ÃÒ²Ã»ÎÊÌâ¡£·şÎñ¶ËÄÇ±ßÆ´½ÓµÄÂ·¾¶¼´±ãÊÇ"./backupDir/./myWork/a.txt" ÕâÑùµÄ, Ò²ÊÇÄÜ¹»Õı³£´ò¿ªµÄ, Ö»²»¹ı"./"Ã»ÒâÒå¶øÒÑ
+			upload_filename.erase(0, 2);	//æœåŠ¡ç«¯é‚£è¾¹å¤„ç†äº†backupDirçš„è·¯å¾„,å¤‡ä»½ç›®å½•ä¸º'./backupDir/', å› æ­¤å®¢æˆ·ç«¯æ–‡ä»¶åä¸éœ€è¦æºå¸¦'/'å‰ç¼€, è¿™é‡Œåˆ é™¤é•¿åº¦ä¸º2
+				//æœ‰ä¸€è¯´ä¸€, è¿™é‡Œä¸åˆ åº”è¯¥ä¹Ÿæ²¡é—®é¢˜ã€‚æœåŠ¡ç«¯é‚£è¾¹æ‹¼æ¥çš„è·¯å¾„å³ä¾¿æ˜¯"./backupDir/./myWork/a.txt" è¿™æ ·çš„, ä¹Ÿæ˜¯èƒ½å¤Ÿæ­£å¸¸æ‰“å¼€çš„, åªä¸è¿‡"./"æ²¡æ„ä¹‰è€Œå·²
 			item.filename = upload_filename;
-			item.name = "file";	//·şÎñ¶ËÖ¸¶¨µÄname¾ÍÊÇfile
+			item.name = "file";	//æœåŠ¡ç«¯æŒ‡å®šçš„nameå°±æ˜¯file
 			item.content = content;
 			item.content_type = "application/octet-stream";
 
 			httplib::MultipartFormDataItems items;
 			items.emplace_back(item);
 
-			auto ret = cl.Post("/upload", items);	//retÊÇÒ»¸öResultÀàĞÍµÄ½á¹¹Ìå
+			auto ret = cl.Post("/upload", items);	//retæ˜¯ä¸€ä¸ªResultç±»å‹çš„ç»“æ„ä½“
 			if (!ret || ret->status != 200) {
 				std::cerr << "Backup: Upload: upload file failed!" << std::endl;
 				return false;
@@ -48,28 +48,28 @@ namespace CloudBackup {
 	public:
 		bool RunModule() {
 			while (1) {
-				bool enter = false;
-				//1. ±éÀúÖ¸¶¨ÎÄ¼ş¼ĞÏÂµÄÄ¿Â¼	(ÔÚ´ÎÖ®Ç°, ¿Í»§¶ËÄÇ±ßÒ»¶¨Òª±£Ö¤ ´«¹ıÀ´µÄ±¸·İÂ·¾¶ÊÇÒ»¸öÄ¿Â¼, ¶ø²»ÊÇÎÄ¼ş)
+				int enterCount = 0;
+				//1. éå†æŒ‡å®šæ–‡ä»¶å¤¹ä¸‹çš„ç›®å½•	(åœ¨æ¬¡ä¹‹å‰, å®¢æˆ·ç«¯é‚£è¾¹ä¸€å®šè¦ä¿è¯ ä¼ è¿‡æ¥çš„å¤‡ä»½è·¯å¾„æ˜¯ä¸€ä¸ªç›®å½•, è€Œä¸æ˜¯æ–‡ä»¶)
 				std::vector<std::string> files;
 				FileUtil fu(_back_dir);
 				fu.ScanDirectory(files);
 
 				for (auto& file : files) {
-					//2. ÅĞ¶ÏÎÄ¼şÊÇ·ñĞèÒª±¸·İ(ĞÂµÄÎÄ¼ş/ĞŞ¸ÄµÄÎÄ¼ş) --- ÅĞ¶Ï·½·¨(¸ù¾İTag)
+					//2. åˆ¤æ–­æ–‡ä»¶æ˜¯å¦éœ€è¦å¤‡ä»½(æ–°çš„æ–‡ä»¶/ä¿®æ”¹çš„æ–‡ä»¶) --- åˆ¤æ–­æ–¹æ³•(æ ¹æ®Tag)
 					if (IsNeedBackup(file)) {
-						enter = true;
-						//3. ½«ĞèÒª±¸·İµÄÎÄ¼şÉÏ´«;
+						enterCount++;
+						//3. å°†éœ€è¦å¤‡ä»½çš„æ–‡ä»¶ä¸Šä¼ ;
 						auto ret = Upload(file);
 						if (ret == true) {
-							//3. ¸ü¸ÄÎÄ¼şµÄ±¸·İĞÅÏ¢µ½(¹şÏ£±íÖĞ)
+							//3. æ›´æ”¹æ–‡ä»¶çš„å¤‡ä»½ä¿¡æ¯åˆ°(å“ˆå¸Œè¡¨ä¸­)
 							_datam->Insert(file, GetFileTag(file));
 						}
 					}
 				}
-				if (!enter) {
+				if (enterCount <= 1) {
 					break;
 				}
-				Sleep(10);	//Ã¿´ÎĞİÏ¢10ºÁÃëms
+				Sleep(10);	//æ¯æ¬¡ä¼‘æ¯10æ¯«ç§’ms
 			}
 			
 			return true;
@@ -85,19 +85,24 @@ namespace CloudBackup {
 		}
 
 		bool IsNeedBackup(const std::string& filename) {
+			// cloud.datæ–‡ä»¶ä¸éœ€è¦æäº¤
+			if (filename.substr(filename.rfind("\\") + 1) == "cloud.dat") {
+				return false;
+			}
+
 			std::string old_tag;
 
 			auto ret = _datam->GetOneByKey(filename, old_tag);
-			//1. µ±ÎÄ¼ş´æÔÚÇÒold_tagÓëÏÖÓĞµÄtagÏàÍ¬µÄÊ±ºò, ²Å²»ĞèÒª±¸·İ
+			//1. å½“æ–‡ä»¶å­˜åœ¨ä¸”old_tagä¸ç°æœ‰çš„tagç›¸åŒçš„æ—¶å€™, æ‰ä¸éœ€è¦å¤‡ä»½
 			if (ret && old_tag == GetFileTag(filename)) {
 				return false;
 			}
 
-			//2. µ±ÎÄ¼ş²»´æÔÚ or old_tag != ÏÖÓĞµÄtag, ²Å¿¼ÂÇ±¸·İ
-			//	ÕâÀï¿¼ÂÇÒ»ÖÖÇé¿ö, Èç¹ûÒ»¸öÎÄ¼ş´Ó±ğµÄÎÄ¼ş¼Ğ¿½±´µ½backDir, µ«ÊÇËüºÜ´ó, ¿½±´µÄËÙ¶ÈºÜÂı¡£
-			//	->	´ËÊ±ÎÒÃÇÔÚ¼ì²âµÄÊ±ºò£¬»á·´¸´¼ì²â¸ÃÎÄ¼şÊÇ±»ĞŞ¸Ä¹ıµÄ£¬·´¸´±¸·İ²¢ÉÏ´«¸ÃÎÄ¼ş¡£
-			//	->	ÎªÁË·ÀÖ¹ÕâÖÖÇé¿öµÄ·¢Éú, ÎÒÃÇ¿ÉÒÔÍ¨¹ıÅĞ¶Ï µ±Ç°Ê±¼ä - ×îºóĞŞ¸ÄÊ±¼ä < 3s, À´ÅĞ¶Ï¸ÃÎÄ¼ş¿ÉÄÜ»¹ÔÚ±»ĞŞ¸Ä»òÕßÕıÔÚ¿½±´ÖĞ¡£
-			//	->	ÕâÖÖÇé¿öÎÒÃÇ¾Í·µ»Øfalse, µÈ´ıËü³¬¹ıÕâ¸öÊ±¼äºó, ÔÙ±¸·İ¸ÃÎÄ¼ş
+			//2. å½“æ–‡ä»¶ä¸å­˜åœ¨ or old_tag != ç°æœ‰çš„tag, æ‰è€ƒè™‘å¤‡ä»½
+			//	è¿™é‡Œè€ƒè™‘ä¸€ç§æƒ…å†µ, å¦‚æœä¸€ä¸ªæ–‡ä»¶ä»åˆ«çš„æ–‡ä»¶å¤¹æ‹·è´åˆ°backDir, ä½†æ˜¯å®ƒå¾ˆå¤§, æ‹·è´çš„é€Ÿåº¦å¾ˆæ…¢ã€‚
+			//	->	æ­¤æ—¶æˆ‘ä»¬åœ¨æ£€æµ‹çš„æ—¶å€™ï¼Œä¼šåå¤æ£€æµ‹è¯¥æ–‡ä»¶æ˜¯è¢«ä¿®æ”¹è¿‡çš„ï¼Œåå¤å¤‡ä»½å¹¶ä¸Šä¼ è¯¥æ–‡ä»¶ã€‚
+			//	->	ä¸ºäº†é˜²æ­¢è¿™ç§æƒ…å†µçš„å‘ç”Ÿ, æˆ‘ä»¬å¯ä»¥é€šè¿‡åˆ¤æ–­ å½“å‰æ—¶é—´ - æœ€åä¿®æ”¹æ—¶é—´ < 3s, æ¥åˆ¤æ–­è¯¥æ–‡ä»¶å¯èƒ½è¿˜åœ¨è¢«ä¿®æ”¹æˆ–è€…æ­£åœ¨æ‹·è´ä¸­ã€‚
+			//	->	è¿™ç§æƒ…å†µæˆ‘ä»¬å°±è¿”å›false, ç­‰å¾…å®ƒè¶…è¿‡è¿™ä¸ªæ—¶é—´å, å†å¤‡ä»½è¯¥æ–‡ä»¶
 			//if (time(NULL) - FileUtil(filename).LastModifyTime() < 3) {
 			//	return false;
 			//}
@@ -106,7 +111,7 @@ namespace CloudBackup {
 		}
 
 	private:
-		std::string _back_dir;	//¼à¿ØµÄÎÄ¼şÄ¿Â¼(±¸·İÎÄ¼ş¼Ğ)
-		DataManager* _datam;	//Êı¾İ¹ÜÀíÄ£¿é
+		std::string _back_dir;	//ç›‘æ§çš„æ–‡ä»¶ç›®å½•(å¤‡ä»½æ–‡ä»¶å¤¹)
+		DataManager* _datam;	//æ•°æ®ç®¡ç†æ¨¡å—
 	};
 }
