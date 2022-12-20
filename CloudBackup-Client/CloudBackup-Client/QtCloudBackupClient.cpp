@@ -3,7 +3,7 @@
 QtCloudBackupClient::QtCloudBackupClient(QWidget *parent)
     : QMainWindow(parent)
 {
-    ui.setupUi(this);//你好
+    ui.setupUi(this);
 	//this->setWindowFlags(Qt::FramelessWindowHint);//隐藏窗口栏
 
 	connect(ui.bt_apply, &QPushButton::clicked, this, &QtCloudBackupClient::apply_on_clicked);

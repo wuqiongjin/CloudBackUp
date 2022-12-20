@@ -4,6 +4,7 @@
 #include <vector>
 #include <sstream>
 #include <fstream>
+#include <utility>
 #include <regex>
 #include <ctime>
 #include <experimental/filesystem>
@@ -19,9 +20,8 @@ namespace CloudBackup {
 	public:
 		FileUtil(const std::string& name) 
 			:_filename(name)
-			//,_is_absolute_path(fs::path(name).is_absolute())
 		{
-			//统一目录名称 --> 相对路径
+			//统一目录名称(实际上就是 获取绝对路径, 以便于后续处理)
 			if (fs::is_directory(name)) {
 				UnifyDirectoryName(name);
 			}
@@ -121,47 +121,33 @@ namespace CloudBackup {
 		}
 
 		//遍历filename目录下的所有文件, 将文件存储到array数组中(输出型参数)
-		//注意: 存入到array的文件名称是'相对路径', 我们不是只存文件的名字, 我们还需要存它的前缀路径(相对的)
-		bool ScanDirectory(std::vector<std::string>& output_array) {
-			//改变当前工作目录	(能达到这里的, 只能是"RunModule"调用的。这也说明此时的路径是我们需要备份的目录路径)
-			fs::current_path(_absolute_path + "\\..");
-			
-			std::string file_tree = _relative_path + "\\" + FileName() + "_dir.stru";
-			//std::string relative_file_tree = _relative_path + "\\" + FileName() + "_dir.stru";
-			//std::string absolute_file_tree = _absolute_path + "\\" + FileName() + "_dir.stru";
+		//注意: array的pair的第一个表示"相对路径"; 第二个表示"绝对路径";
+		//相对路径是用于在服务端'创建'文件并'写入'的(以及'创建目录结构'); 绝对路径是用于在客户端'读取'文件内容的
+		bool ScanDirectory(std::vector<std::pair<std::string, std::string>>& output_array) {
+			std::string file_tree = _absolute_path + "\\" + FileName() + "_dir.stru";
 			RemoveFile(file_tree);	//提前清除目录结构文件(为了保证它是第一个数组元素)
-			output_array.emplace_back(file_tree);	//保证第一个元素一定是目录结构文件
-			//扩展: 这里使用recursive_directory_iterator可以递归遍历到filename目录下的所有文件(包含其子目录的文件), 那么是否可以把目录也上传到服务器呢?
-			for (auto& p : fs::recursive_directory_iterator(_relative_path)) {
+			output_array.emplace_back(ConvertAbsolute2Relative(file_tree), file_tree);	//保证第一个元素一定是目录结构文件
+			for (auto& p : fs::recursive_directory_iterator(_absolute_path)) {
 				if (fs::is_directory(p) == false) {
-					output_array.emplace_back(fs::path(p).string());
-					std::cout << output_array.back() << std::endl;
+					output_array.emplace_back(ConvertAbsolute2Relative(fs::path(p).string()), fs::path(p).string());
 				}
-
-				////判断是否是目录文件, 将非目录文件添加到array数组中
-				//if (fs::is_directory(p) == false) {
-				//	//判断用户输入的路径是相对路径还是绝对路径(对相对路径和绝对路径作不同的处理)
-				//	if (_is_absolute_path) {
-				//		output_array.emplace_back(fs::path(p).string());
-				//	}
-				//	else {
-				//		output_array.emplace_back(fs::path(p).relative_path().string());
-				//	}
-				//}
 			}
+
 			//最后生成一下 目录结构文件
 			return GenerateStructureFile();
 		}
 
+	private:	//下面的几个函数只会在当前类中被调用
 		//返回生成的目录结构文件名称
 		bool GenerateStructureFile() {
 			std::string res;
 			std::string line;
 			std::regex r("\\\\");	//将\\替换为/
-			for (auto p = fs::recursive_directory_iterator(_relative_path); p != fs::recursive_directory_iterator(); ++p)
+			for (auto p = fs::recursive_directory_iterator(_absolute_path); p != fs::recursive_directory_iterator(); ++p)
 			{
 				if (fs::is_directory(p->path())) {
 					line = p->path().string();
+					line = ConvertAbsolute2Relative(line);	//将绝对路径转为为相对路径
 					line = std::regex_replace(line, r, "/");
 					line.erase(0, 2);	//这边删不删都不影响服务端那边创建目录
 					res += line + "\n";
@@ -170,13 +156,13 @@ namespace CloudBackup {
 			if (res != "") {
 				res.resize(res.size() - 1);	//删除最后多加的'\n'
 			}
-			std::string file_tree = _relative_path + "\\" + FileName() + "_dir.stru";
+			std::string file_tree = _absolute_path + "\\" + FileName() + "_dir.stru";
 			FileUtil fu(file_tree);	//备份根目录下会生成xxx_dir.stru目录结构文件
 			fu.SetContent(res);
 			return true;
 		}
 
-		//统一化目录名称 ---> 相对路径
+		//统一化目录名称 ---> 保存绝对路径(后续在上传文件时会修改为相对路径)
 		bool UnifyDirectoryName(const std::string& name){
 			//原始工作目录
 			std::string original_work_dir = fs::current_path().string();
@@ -184,14 +170,24 @@ namespace CloudBackup {
 			fs::current_path(name);						//改变当前工作目录到name目录下
 
 			_absolute_path = fs::current_path().string();	//获取当前工作目录的绝对路径
-			int pos = _absolute_path.rfind("\\");		//找到备份的目录名称
-			_relative_path = ".\\";
-			_relative_path += _absolute_path.substr(pos + 1);
-			//_filename = ".\\";
-			//_filename += _absolute_path.substr(pos + 1);	//获取相对路径	.\\backupDir\\xxx的形式
+			//int pos = _absolute_path.rfind("\\");		//找到备份的目录名称
+			//_relative_path = ".\\";
+			//_relative_path += _absolute_path.substr(pos + 1);	//获取相对路径	.\\backupDir\\xxx的形式
 
 			fs::current_path(original_work_dir);		//回到原始工作目录(以防影响后续使用FileUtil类)
 			return true;
+		}
+
+		//功能: 将绝对路径转换成相对路径。相对于"备份根目录的"相对路径! (这里的路径分隔符是"\\" Windows的)
+		//注: 调用该函数的有ScanDirectory、GenerateStructureFile.
+		//示例:
+		//备份目录:	E:\\WorkFlow\\DailyNotes\\BackupDir
+		//处理对象:	E:\\WorkFlow\\DailyNotes\\BackupDir\\xxx
+		//处理结果:	.\\BackupDir\\xxx
+		inline std::string ConvertAbsolute2Relative(const std::string& path) {
+			std::string res = ".\\";
+			res += path.substr(_absolute_path.size() - FileName().size());
+			return res;
 		}
 
 	private:
@@ -199,6 +195,5 @@ namespace CloudBackup {
 		struct stat _st;
 		std::string _absolute_path;
 		std::string _relative_path;
-		//bool _is_absolute_path = true;
 	};
 }

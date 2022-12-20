@@ -17,16 +17,15 @@ namespace CloudBackup {
 			 _datam(new DataManager(backdir))
 		{}
 	private:
-		bool Upload(const std::string& filename) {
+		bool Upload(const std::string& relative_filename, const std::string& absolute_filename) {
 			httplib::Client cl(SERVER_IP, SERVER_PORT);
-			FileUtil fu(filename);
+			FileUtil fu(absolute_filename);	//下面要进行文件的读取, 因此这里必须是绝对路径, 不然找不到对应的文件
 			std::string content;
 			fu.GetContent(content);
 
 			httplib::MultipartFormData item;
-			//item.filename = fu.FileName();
 			std::regex r("\\\\");
-			std::string upload_filename = std::regex_replace(filename, r, "/");
+			std::string upload_filename = std::regex_replace(relative_filename, r, "/");	//上传文件名必须是"相对路径"
 			upload_filename.erase(0, 2);	//服务端那边处理了backupDir的路径,备份目录为'./backupDir/', 因此客户端文件名不需要携带'/'前缀, 这里删除长度为2
 				//有一说一, 这里不删应该也没问题。服务端那边拼接的路径即便是"./backupDir/./myWork/a.txt" 这样的, 也是能够正常打开的, 只不过"./"没意义而已
 			item.filename = upload_filename;
@@ -50,19 +49,20 @@ namespace CloudBackup {
 			while (1) {
 				int enterCount = 0;
 				//1. 遍历指定文件夹下的目录	(在次之前, 客户端那边一定要保证 传过来的备份路径是一个目录, 而不是文件)
-				std::vector<std::string> files;
+				//files数组是一个pair数组. 第一个元素表示"相对路径"; 第二个元素表示"绝对路径"
+				std::vector<std::pair<std::string, std::string>> files;
 				FileUtil fu(_back_dir);
 				fu.ScanDirectory(files);
 
 				for (auto& file : files) {
 					//2. 判断文件是否需要备份(新的文件/修改的文件) --- 判断方法(根据Tag)
-					if (IsNeedBackup(file)) {
+					if (IsNeedBackup(file.second)) {
 						enterCount++;
 						//3. 将需要备份的文件上传;
-						auto ret = Upload(file);
+						auto ret = Upload(file.first, file.second);
 						if (ret == true) {
 							//3. 更改文件的备份信息到(哈希表中)
-							_datam->Insert(file, GetFileTag(file));
+							_datam->Insert(file.second, GetFileTag(file.second));
 						}
 					}
 				}
