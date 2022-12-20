@@ -59,10 +59,18 @@ namespace CloudBackup{
           fs::path p_content{content, std::locale("zh_CN.gbk")};
           auto utf_content = p_content.u8string();
           
-          //如果stru文件为空, 别忘了创建root备份目录本身
+          //优先创建"备份根目录", 因为stru文件可能为空, 为空的话后面的操作就无法执行了, 所以在这里先创建一下备份根目录, 并将备份信息插入到cloud.dat中
+          fs::create_directory(utf_root);
+          BackupInfo root_bi;
+          root_bi.NewBackupInfo(utf_root);
+          _datam->Insert(root_bi);
+
+          //如果stru文件为空, 直接return
           if(file.content.size() == 0){
-            fs::create_directory(utf_root);
+            std::cout << "INFO: " << "stru content is empty!" << std::endl;
+            return;
           } 
+
           //3.1 创建相应目录结构
           auto dir_tree = FileUtil::Split(utf_content, "\n");
           //3.2 为目录结构的每条目录信息, 拼接backupDir前缀
@@ -75,9 +83,6 @@ namespace CloudBackup{
 
           //3.3 递归遍历备份目录, 将备份目录下的所有目录信息添加到哈希表里(持久化存储到cloud.dat中), 以便于后续showlist
           //别忘了添加用户备份的根目录!!!
-          BackupInfo root_bi;
-          root_bi.NewBackupInfo(utf_root);
-          _datam->Insert(root_bi);
 
           for(auto& p : fs::recursive_directory_iterator(utf_root))
           {

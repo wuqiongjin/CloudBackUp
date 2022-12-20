@@ -105,5 +105,6 @@ int main(int argc, char* argv[])
   hotm_thread.join();
   service_thread.join();
 
+  delete _datam;
   return 0;
 }

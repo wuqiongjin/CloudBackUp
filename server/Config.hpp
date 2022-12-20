@@ -63,6 +63,8 @@ namespace CloudBackup{
       Config(){
         ReadConfigFile();
       }
+      Config(const Config&) = delete;
+      Config& operator=(const Config&) = delete;
       static Config* _inst;
       static std::mutex _mtx;
     private:
@@ -73,7 +75,7 @@ namespace CloudBackup{
       std::string _pack_dir;    //压缩包的存放路径
       std::string _backup_dir;  //备份文件的存放路径
       std::string _backup_info_list;  //备份文件数据信息列表(这里把备份文件的信息存放到了cloud.dat文件里了)
-      std::string _download_prefix;   //下载备份文件时需要为下载请求URL添加的前缀以用于触发对应响应
+      std::string _download_prefix;   //下载备份文件时需要为下载请求URL添加前缀以用于触发对应响应
       std::string _access_prefix;     //访问目录文件时需要为URL添加访问前缀以用于触发对应响应
   };
   
