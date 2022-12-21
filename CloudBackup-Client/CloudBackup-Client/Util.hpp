@@ -23,7 +23,7 @@ namespace CloudBackup {
 		{
 			//统一目录名称(实际上就是 获取绝对路径, 以便于后续处理)
 			if (fs::is_directory(name)) {
-				UnifyDirectoryName(name);
+				UnifyDirectoryName();
 			}
 			//普通文件不处理
 		}
@@ -66,7 +66,10 @@ namespace CloudBackup {
 			//	return _filename;
 			//}
 			//return _filename.substr(pos + 1);
-			return fs::path(_filename).filename().string();	//C++17的文件系统库的接口是跨平台的
+			return fs::is_directory(_filename) ? \
+				fs::path(_absolute_path).filename().string() : \
+				fs::path(_filename).filename().string();
+				//C++17的文件系统库的接口是跨平台的
 		}
 
 		bool GetPosLenContent(std::string& output_content, size_t pos, size_t len) {
@@ -113,7 +116,7 @@ namespace CloudBackup {
 		}
 
 		//当filename目录不存在时, 创建该目录
-		bool CreateDirectory() {
+		bool Create_Directory() {
 			//if(this->Exists()){
 			//  return true;
 			//}
@@ -125,10 +128,10 @@ namespace CloudBackup {
 		//相对路径是用于在服务端'创建'文件并'写入'的(以及'创建目录结构'); 绝对路径是用于在客户端'读取'文件内容的
 		bool ScanDirectory(std::vector<std::pair<std::string, std::string>>& output_array) {
 			std::string file_tree = _absolute_path + "\\" + FileName() + "_dir.stru";
-			RemoveFile(file_tree);	//提前清除目录结构文件(为了保证它是第一个数组元素)
+			//RemoveFile(file_tree);	//提前清除目录结构文件(为了保证它是第一个数组元素)
 			output_array.emplace_back(ConvertAbsolute2Relative(file_tree), file_tree);	//保证第一个元素一定是目录结构文件
 			for (auto& p : fs::recursive_directory_iterator(_absolute_path)) {
-				if (fs::is_directory(p) == false) {
+				if (fs::is_directory(p) == false && fs::path(p).string() != file_tree) {
 					output_array.emplace_back(ConvertAbsolute2Relative(fs::path(p).string()), fs::path(p).string());
 				}
 			}
@@ -163,11 +166,16 @@ namespace CloudBackup {
 		}
 
 		//统一化目录名称 ---> 保存绝对路径(后续在上传文件时会修改为相对路径)
-		bool UnifyDirectoryName(const std::string& name){
+		bool UnifyDirectoryName(){
+			//统一化处理最后的'/', 目录的路径允许 C:/abc   也允许 C:/abc/
+			if (_filename.back() == '/') {
+				_filename.pop_back();
+			}
+
 			//原始工作目录
 			std::string original_work_dir = fs::current_path().string();
 
-			fs::current_path(name);						//改变当前工作目录到name目录下
+			fs::current_path(_filename);						//改变当前工作目录到name目录下
 
 			_absolute_path = fs::current_path().string();	//获取当前工作目录的绝对路径
 			//int pos = _absolute_path.rfind("\\");		//找到备份的目录名称

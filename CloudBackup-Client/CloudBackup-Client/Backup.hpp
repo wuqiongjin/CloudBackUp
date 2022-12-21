@@ -1,7 +1,5 @@
 ﻿#pragma once
 #include "DataManager.hpp"
-#include "httplib.h"
-#include <Windows.h>
 
 namespace CloudBackup {
 	constexpr auto SERVER_IP = "152.136.211.148";
@@ -45,19 +43,19 @@ namespace CloudBackup {
 		}
 
 	public:
-		bool RunModule() {
-			while (1) {
-				int enterCount = 0;
+		bool RunModule(const std::vector<bool>& stops, int index) {
+			FileUtil fu(_back_dir);	//这里必须提到循环前面; 这里涉及到切换工作目录, 切换工作目录会影响其它线程执行. 因此只有在添加新的备份目录时才需要切换
+			while (!stops[index]) {
+				//int enterCount = 0;
 				//1. 遍历指定文件夹下的目录	(在次之前, 客户端那边一定要保证 传过来的备份路径是一个目录, 而不是文件)
 				//files数组是一个pair数组. 第一个元素表示"相对路径"; 第二个元素表示"绝对路径"
 				std::vector<std::pair<std::string, std::string>> files;
-				FileUtil fu(_back_dir);
 				fu.ScanDirectory(files);
 
 				for (auto& file : files) {
 					//2. 判断文件是否需要备份(新的文件/修改的文件) --- 判断方法(根据Tag)
 					if (IsNeedBackup(file.second)) {
-						enterCount++;
+						//enterCount++;
 						//3. 将需要备份的文件上传;
 						auto ret = Upload(file.first, file.second);
 						if (ret == true) {
@@ -66,9 +64,9 @@ namespace CloudBackup {
 						}
 					}
 				}
-				if (enterCount <= 1) {
-					break;
-				}
+				//if (enterCount <= 1) {
+				//	break;
+				//}
 				Sleep(10);	//每次休息10毫秒ms
 			}
 			
@@ -85,8 +83,8 @@ namespace CloudBackup {
 		}
 
 		bool IsNeedBackup(const std::string& filename) {
-			// cloud.dat文件不需要提交
-			if (filename.substr(filename.rfind("\\") + 1) == "cloud.dat") {
+			// cloud.dat与MonitoredBackupList.dat文件不需要提交
+			if (filename.substr(filename.rfind("\\") + 1) == "cloud.dat" || filename.substr(filename.rfind("\\") + 1) == "MonitoredBackupList.dat") {
 				return false;
 			}
 

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>773</width>
-    <height>465</height>
+    <width>883</width>
+    <height>531</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -72,8 +72,8 @@
    <widget class="QLabel" name="lb_tips">
     <property name="geometry">
      <rect>
-      <x>80</x>
-      <y>260</y>
+      <x>50</x>
+      <y>380</y>
       <width>381</width>
       <height>91</height>
      </rect>
@@ -91,8 +91,8 @@
    <widget class="QPushButton" name="bt_apply">
     <property name="geometry">
      <rect>
-      <x>590</x>
-      <y>170</y>
+      <x>730</x>
+      <y>110</y>
       <width>111</width>
       <height>31</height>
      </rect>
@@ -106,14 +106,45 @@
      </font>
     </property>
     <property name="text">
-     <string>Apply</string>
+     <string>Add</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="bt_exit">
+   <widget class="QListWidget" name="ltw_showlist">
     <property name="geometry">
      <rect>
-      <x>590</x>
-      <y>320</y>
+      <x>210</x>
+      <y>160</y>
+      <width>491</width>
+      <height>192</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="lb_monpath">
+    <property name="geometry">
+     <rect>
+      <x>40</x>
+      <y>160</y>
+      <width>161</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+      <pointsize>12</pointsize>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>Monitored Path:</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="bt_delete">
+    <property name="geometry">
+     <rect>
+      <x>730</x>
+      <y>230</y>
       <width>111</width>
       <height>31</height>
      </rect>
@@ -127,7 +158,7 @@
      </font>
     </property>
     <property name="text">
-     <string>Exit</string>
+     <string>Delete</string>
     </property>
    </widget>
   </widget>
@@ -136,7 +167,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>773</width>
+     <width>883</width>
      <height>26</height>
     </rect>
    </property>

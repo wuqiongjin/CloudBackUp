@@ -1,5 +1,8 @@
 ﻿#pragma once
 #include <unordered_map>
+#include "httplib.h"
+#include <Windows.h>
+#include <process.h>
 #include "Util.hpp"
 constexpr auto PERSISTENCE_FILE_DATA = "\\cloud.dat";
 
@@ -12,7 +15,13 @@ namespace CloudBackup {
 		DataManager(const std::string& backdir)
 			:_persistence_file(backdir + PERSISTENCE_FILE_DATA)
 		{
+			//InitializeSRWLock(&_srw);
 			InitLoad();
+		}
+
+		~DataManager()
+		{
+			Storage();
 		}
 
 		bool InitLoad() {
@@ -46,30 +55,36 @@ namespace CloudBackup {
 		}
 
 		bool Insert(const std::string& key, const std::string& val) {
+			//AcquireSRWLockExclusive(&_srw);
 			_path2Tag[key] = val;
+			//ReleaseSRWLockExclusive(&_srw);
 			Storage();
 			return true;
 		}
 
 		bool Update(const std::string& key, const std::string& val) {
+			//AcquireSRWLockExclusive(&_srw);
 			_path2Tag[key] = val;
+			//ReleaseSRWLockExclusive(&_srw);
 			Storage();
 			return true;
 		}
 
 		bool GetOneByKey(const std::string& key, std::string& output_val) {
+			//AcquireSRWLockShared(&_srw);
 			auto it = _path2Tag.find(key);
 			if (it == _path2Tag.end()) {
 				std::cerr << "DataManager: GetOneByKey: find key failed!" << std::endl;
+				//ReleaseSRWLockShared(&_srw);
 				return false;
 			}
+			//ReleaseSRWLockShared(&_srw);
 
 			output_val = it->second;
 			return true;
 		}
 
-	private:
-		std::vector<std::string> Split(const std::string& s, const std::string& sep) {
+		static std::vector<std::string> Split(const std::string& s, const std::string& sep) {
 			std::vector<std::string> res;
 			size_t pos = 0, prev = 0;
 			while ((pos = s.find(sep, prev)) != std::string::npos)
@@ -93,6 +108,7 @@ namespace CloudBackup {
 		}
 
 	private:
+		//SRWLOCK _srw;	//Windows下的读写锁
 		std::string _persistence_file = PERSISTENCE_FILE_DATA;	//持久化存储文件(备份信息存储文件)
 		std::unordered_map<std::string, std::string> _path2Tag;	//文件路径 ? 文件唯一标识符Tag
 	};
