@@ -22,14 +22,14 @@ namespace CloudBackup {
 			:_filename(name)
 		{
 			//统一目录名称(实际上就是 获取绝对路径, 以便于后续处理)
-			if (fs::is_directory(name)) {
-				UnifyDirectoryName();
-			}
+			//if (fs::is_directory(name)) {
+			UnifyDirectoryName();	//获取绝对路径(里面使用了filesystem的canonical, '不管文件还是目录'都能获取到绝对路径)
+			//}
 			//普通文件不处理
 		}
 
 		const std::string& GetAbsolutePath() { return _absolute_path; }
-		const std::string& GetRelativePath() { return _relative_path; }
+		//const std::string& GetRelativePath() { return _relative_path; }
 
 		bool RemoveFile(const std::string& filename) {
 			return fs::remove(filename);	//不管它是否存在, 都会进行删除; 不存在false, 存在true
@@ -166,23 +166,26 @@ namespace CloudBackup {
 		}
 
 		//统一化目录名称 ---> 保存绝对路径(后续在上传文件时会修改为相对路径)
-		bool UnifyDirectoryName(){
-			//统一化处理最后的'/', 目录的路径允许 C:/abc   也允许 C:/abc/
-			if (_filename.back() == '/') {
-				_filename.pop_back();
-			}
+		inline bool UnifyDirectoryName(){
+			_absolute_path = fs::canonical(_filename).string();
 
-			//原始工作目录
-			std::string original_work_dir = fs::current_path().string();
 
-			fs::current_path(_filename);						//改变当前工作目录到name目录下
+			////统一化处理最后的'/', 目录的路径允许 C:/abc   也允许 C:/abc/
+			//if (_filename.back() == '/') {
+			//	_filename.pop_back();
+			//}
 
-			_absolute_path = fs::current_path().string();	//获取当前工作目录的绝对路径
-			//int pos = _absolute_path.rfind("\\");		//找到备份的目录名称
-			//_relative_path = ".\\";
-			//_relative_path += _absolute_path.substr(pos + 1);	//获取相对路径	.\\backupDir\\xxx的形式
+			////原始工作目录
+			//std::string original_work_dir = fs::current_path().string();
 
-			fs::current_path(original_work_dir);		//回到原始工作目录(以防影响后续使用FileUtil类)
+			//fs::current_path(_filename);						//改变当前工作目录到name目录下
+
+			//_absolute_path = fs::current_path().string();	//获取当前工作目录的绝对路径
+			////int pos = _absolute_path.rfind("\\");		//找到备份的目录名称
+			////_relative_path = ".\\";
+			////_relative_path += _absolute_path.substr(pos + 1);	//获取相对路径	.\\backupDir\\xxx的形式
+
+			//fs::current_path(original_work_dir);		//回到原始工作目录(以防影响后续使用FileUtil类)
 			return true;
 		}
 
@@ -202,6 +205,6 @@ namespace CloudBackup {
 		std::string _filename;
 		struct stat _st;
 		std::string _absolute_path;
-		std::string _relative_path;
+		//std::string _relative_path;
 	};
 }

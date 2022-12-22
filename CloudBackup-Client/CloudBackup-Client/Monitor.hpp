@@ -1,5 +1,4 @@
 #pragma once
-#include <unordered_set>
 #include "Backup.hpp"
 
 namespace CloudBackup {
@@ -109,6 +108,6 @@ namespace CloudBackup {
 		FileUtil _fu;
 		std::vector<std::thread> _ths;
 		std::vector<bool> _stops;			//停止标志, 当stop设置为true时, 停止监控该下标所对应的线程
-		std::unordered_map<std::string, int> _monitor_list;
+		std::unordered_map<std::string, int> _monitor_list;//备份目录 to 线程所在下标
 	};
 }

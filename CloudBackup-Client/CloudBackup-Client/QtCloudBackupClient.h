@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <QtWidgets/QMainWindow>
+#include <qfiledialog.h>
 #include <QtWidgets/qmessagebox.h>
 #include "ui_QtCloudBackupClient.h"
 #include "Monitor.hpp"
@@ -12,6 +13,7 @@ class QtCloudBackupClient : public QMainWindow
 public:
     QtCloudBackupClient(QWidget *parent = nullptr);
     ~QtCloudBackupClient();
+	void browse_on_clicked();
 	void apply_on_clicked();
 	void delete_on_clicked();
 	//void exit_on_clicked();
