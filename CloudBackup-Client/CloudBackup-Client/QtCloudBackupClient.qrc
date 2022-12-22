@@ -1,3 +1,5 @@
 <RCC>
-  <qresource prefix="QtCloudBackupClient"/>
+    <qresource prefix="/QtCloudBackupClient">
+        <file>云备份.ico</file>
+    </qresource>
 </RCC>

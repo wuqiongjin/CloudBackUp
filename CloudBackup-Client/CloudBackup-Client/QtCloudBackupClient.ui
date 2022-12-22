@@ -13,11 +13,15 @@
   <property name="windowTitle">
    <string>QtCloudBackupClient</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="QtCloudBackupClient.qrc">
+    <normaloff>:/QtCloudBackupClient/云备份.ico</normaloff>:/QtCloudBackupClient/云备份.ico</iconset>
+  </property>
   <widget class="QWidget" name="centralWidget">
    <widget class="QLabel" name="lb_title">
     <property name="geometry">
      <rect>
-      <x>180</x>
+      <x>210</x>
       <y>10</y>
       <width>421</width>
       <height>71</height>
@@ -92,7 +96,7 @@
     <property name="geometry">
      <rect>
       <x>730</x>
-      <y>110</y>
+      <y>170</y>
       <width>111</width>
       <height>31</height>
      </rect>
@@ -159,6 +163,27 @@
     </property>
     <property name="text">
      <string>Delete</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="bt_browse">
+    <property name="geometry">
+     <rect>
+      <x>730</x>
+      <y>110</y>
+      <width>111</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+      <pointsize>10</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>Browse</string>
     </property>
    </widget>
   </widget>
