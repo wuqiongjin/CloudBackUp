@@ -365,22 +365,43 @@ private:
 
 1. 处理用户输入的备份目录路径
 
-   > 通过``UnifyDirectoryName()``将备份路径统一处理为相对路径。(在后续上传文件时会切换工作路径到备份路径的上级目录)
-   > **举个栗子, 来看一下处理路径的过程**:
+   > 通过``UnifyDirectoryName()``来获取备份目录的绝对路径, 以方便后续使用。
    >
-   > &emsp;程序``CloudBackupClient.exe``在 ``D:\App\WorkSpace``路径下。
+   > &emsp;``UnifyDirectotyName()``通过调用filesystem的``canonical()``方法获取备份目录的绝对路径, 然后保存到成员变量的``_absolute_path``当中。
    >
-   > &emsp;用户输入的备份目录是``E:\BookCase\Collections\bookinfo``。
+   > **问题**: 这里为什么要保存绝对路径呢? 在给服务器上传文件时不是需要相对路径的文件名称吗?
    >
-   > 通过``UnifyDirectoryName()``处理, 将成员变量``_absolute_path``赋值成``E:\\BookCase\\Collections\\bookinfo``。将成员变量``_relative_path``赋值成``.\\bookinfo``。
+   > **答**: 在``ScanDirectory()``时, 需要扫描备份目录, 此时如果使用相对路径, 那么我们**可能无法得知备份目录的根目录的名称**! 这取决于相对路径的表示。 我们根目录这个目录文件本身也是要在服务器上创建的! 因此这里我们使用绝对路径。
    >
-   > &emsp;在后续上传文件时, 由于我们需要传递的文件名称是文件的相对路径, 因此需要切换当前进程的工作目录到备份目录的上级目录``E:\BookCase\Collections``。这样我们在访问备份目录``.\\bookinfo``时才能正常的访问到。
+   > &emsp;实际上, ``ScanDirectory()``在设计上使用了``vector<pair<string,string>>``作为参数，这是为了**同时获取绝对路径和相对路径**。**在``Upload``时既需要绝对路径，也需要相对路径**。绝对路径用于打开文件,进行文件的读写。相对路径用于填充``filename``这个字段, 服务端会根据filename创建对应的文件, 因此这里必须是相对路径。
+   >
+   > &emsp;在``GenerateStructureFile()``时, 我们需要**保存相对路径**到``xxx_dir.stru``文件中，这个文件最终会上传到服务器，服务器会根据文件内容创建多层级目录结构。然而我们只有绝对路径，因此这里需要调用``ConvertAbsolute2Relative()``方法来获取相对路径了!
+   >
+   > ---
+   >
+   > **``ConvertAbsolute2Relative()`` 处理路径的过程**:
+   >
+   > 注意: 该函数处理的不仅仅是目录文件, 普通文件的绝对路径也可以处理! (后面也有使用到)
+   >
+   > 备份目录: ``E:\\WorkFlow\\DailyNotes\\BackupDir``
+   > 处理对象: ``E:\\WorkFlow\\DailyNotes\\BackupDir\\xxx``
+   > 处理结果: ``.\\BackupDir\\xxx``
+   >
+   > ```cpp
+   > inline std::string ConvertAbsolute2Relative(const std::string& path) {
+   > 	std::string res = ".\\";
+   > 	res += path.substr(_absolute_path.size() - FileName().size());
+   > 	return res;
+   > }
+   > ```
+   >
+   > 
 
 2. 生成目录结构文件
 
-   > 该文件时针对"当备份目录中存在子目录"的情况所产生的。
+   > &emsp;该文件时针对"当备份目录中存在子目录"的情况所产生的，如果不存在子目录，则目录结构文件内容为空。
    >
-   > 为了支持用户备份的目录下可包含多层级子目录, 因此必须需要一个能够描述备份目录的目录结构信息的数据文件。
+   > &emsp;为了支持用户备份的目录下可包含多层级子目录, 因此必须需要一个能够描述备份目录的目录结构信息的数据文件。
    >
    > 该文件生成于备份目录的一级子目录下。名称为``xxx_dir.stru``。
    >
@@ -392,11 +413,7 @@ public:
 	FileUtil(const std::string &name)
 		: _filename(name)
 	{
-		// 统一目录名称 --> 相对路径
-		if (fs::is_directory(name)){
-			UnifyDirectoryName(name);
-		}
-		// 普通文件不处理
+		UnifyDirectoryName();	//保存 目录文件/普通文件 的绝对路径
 	}
 
 	const std::string &GetAbsolutePath() { return _absolute_path; }
@@ -406,22 +423,25 @@ public:
 	size_t FileSize();
 	time_t LastModifyTime();
 	time_t LastAccessTime();
-	std::string FileName();
+	std::string FileName();	//目录文件返回_absolute_path; 普通文件返回_filename
 	bool GetPosLenContent(std::string &output_content, size_t pos, size_t len);
 	bool GetContent(std::string &output_content);
 	bool SetContent(const std::string &content);
 
 	bool Exists();
-	bool CreateDirectory();
-	bool ScanDirectory(std::vector<std::string> &output_array);
-	bool GenerateStructureFile();
-	bool UnifyDirectoryName(const std::string &name);
+	bool Create_Directory();	//暂时没有用武之地
+	bool ScanDirectory(std::vector<std::pair<std::string, std::string>>& output_array);
+
+private:
+    bool GenerateStructureFile();
+    inline bool UnifyDirectoryName();
+    inline std::string ConvertAbsolute2Relative(const std::string& path);
 
 private:
 	std::string _filename;
 	struct stat _st;
 	std::string _absolute_path;
-	std::string _relative_path;
+	//std::string _relative_path;	//目前没有任何用
 };
 ```
 
@@ -481,10 +501,10 @@ public:
 		  _datam(new DataManager(backdir))
 	{}
 private:
-	bool Upload(const std::string &filename);
+	bool Upload(const std::string& filename);
 
 public:
-	bool RunModule();
+	bool RunModule(const std::vector<bool>& stops, int index);
 
 private:
 	std::string GetFileTag(const std::string &filename);
@@ -492,6 +512,92 @@ private:
 private:
 	std::string _back_dir; // 监控的文件目录(备份文件夹)
 	DataManager *_datam;   // 数据管理模块
+};
+```
+
+&emsp;
+
+### 3.4 目录监控模块
+
+&emsp;监控模块扮演的是"管理者"的角色。它主要是接收来自主线程的信号指令(Add、Delete), 然后执行对应的函数。在Qt界面初始化时，就会创建对应的``Monitor``对象, 因为需要提前加载``MonitoredBackupList.dat``的数据信息。随后, 就等待主线程调用了。
+
++ ``Insert()``: 将备份目录插入到监控列表并持久化，同时为该备份目录分配对应线程(调用``AddThread()``。
++ ``Delete()``: 将线程对应在stops数组中的位置的flag设置为true，表示该监控目录被删除, 线程会自动销毁。
+
+```cpp
+//监控模块的执行时只有主线程操作的. 子线程们是执行备份模块的. 因此监控模块不需要加锁
+constexpr auto MONITOR_DAT = "\\MonitoredBackupList.dat";//保存在exe可执行程序的同一级别下
+constexpr auto MAX_STOPS = 1000;	//最多允许1000次添加 (包含初始化添加的监控备份目录)
+
+class Monitor {
+public:
+	Monitor()
+		:_fu(MONITOR_DAT),
+		 _stops(MAX_STOPS, false)
+	{
+		_fu = FileUtil(fs::current_path().string() + MONITOR_DAT);
+		InitLoad();
+	}
+
+	~Monitor() 
+	{
+		Storage();
+		//将所有线程结束标志位都设置为true
+		for (auto& ret : _monitor_list)
+		{
+			_stops[ret.second] = true;
+		}
+	}
+
+private:
+	bool InitLoad();
+	bool Storage();
+
+public:
+	bool Insert(const std::string& path);
+	bool Delete(const std::string& path);
+	bool Search(const std::string& path);
+	std::vector<std::string> ShowMonitorList();
+
+private:
+	static void RealTimeBackup(const std::string& path, \
+                        const std::vector<bool>& stops, int index);	//线程的执行函数
+	int AddThread(const std::string& path);	//返回新添加的线程所在的数组下标 (最后一个位置的下标)
+
+private:
+	FileUtil _fu;
+	std::vector<std::thread> _ths;
+	std::vector<bool> _stops;	//停止标志, 当stop设置为true时, 停止监控该下标所对应的线程
+	std::unordered_map<std::string, int> _monitor_list;//备份目录 to 线程所在下标
+};
+```
+
+&emsp;
+
+### 3.5 Qt交互界面
+
++ ``Browse``: 浏览本地目录, 用户可以选择要备份的目录 (用户也可以自己手动输入目录, 相对/绝对 路径)
++ ``Add``: 将Backup Path对应的备份目录添加到监控列表中
++ ``Delete``: 将选中的备份目录从监控列表中删除
++ ``ListWidget``: 用于显示备份信息的列表(自带横向、纵向的ScrollBar)
+
+```cpp
+class QtCloudBackupClient : public QMainWindow
+{
+    Q_OBJECT
+public:
+    QtCloudBackupClient(QWidget *parent = nullptr);
+    ~QtCloudBackupClient();
+public:
+    void browse_on_clicked();
+    bool CheckPathValid(const std::string& path);
+    bool Backup_Action(bool needCheck);
+    void apply_on_clicked();
+    void delete_on_clicked();
+
+private:
+    Ui::QtCloudBackupClientClass ui;
+    CloudBackup::Monitor mon;	//在Qt界面初始化时就加载监控模块对象(因为要读取监控备份列表)
 };
 ```
 
@@ -540,8 +646,21 @@ private:
 ## 5.项目扩展
 
 1. 考虑使用数据库替代``cloud.dat``持久化存储文件。
+
 2. 考虑当多个用户同时访问服务器时，如何给他们显示不同的页面。即，**如何实现多用户的云备份系统**。(用户管理)
-3. 考虑实现让用户同时"监控"同步多个备份目录(真正的实现同步)
+
+3. 考虑实现让用户同时"监控"同步多个备份目录(真正的实现同步) **√已实现**
+
+   > 实现思路: (额外创建一个Monitor模块)
+   >
+   > 1. 使用多线程, 当用户每添加一条备份目录时, 就为该备份目录创建一个对应的线程，让该子线程循环检测并备份备份目录下的文件。
+   > 2. Qt界面允许用户``Apply``新增要监控的备份目录、``Delete``删除要监控的备份目录。Qt页面需要一个``ListWidget``用来显示当前被监控的备份目录列表。
+   > 3. 使用``MonitoredBackupList.dat``存储被监控的备份目录列表。程序每次启动时，需要先加载该列表的信息到内存中(哈希表中), 并为其创建对应的线程以用来监控备份目录。
+   > 4. ``MonitoredBackupList.dat``列表应该支持
+   >    对外提供使用的方法: ``Insert()``、``Delete()``、``Search()``、``ShowList()``。
+   >    内部使用的方法: ``InitLoad()``、``Storage()``、``RealTimeBackup()``、``AddThread()``
+   > 5. ``InitLoad()``和``Insert()``都会涉及到插入备份目录信息, 此时也会调用``AddThread()``去监控该备份目录。
+   > 6. ``Delete()``会将``stop``标志位设置为true, 此时在循环中的线程就能够从循环中跳出来了。(线程已经是detach的了)
 
 ---
 
@@ -550,5 +669,3 @@ private:
 - [x] 压缩模块可以使用线程池实现 (仅压缩; 解压模块不推荐使用线程池,容易出问题)
 - [x] 允许上传多层级目录结构下的文件
 - [ ] 实现用户管理，不同的用户分文件夹存储以及查看
-- [ ] 实现断点上传
-- [ ] 客户端限速，收费则放开
